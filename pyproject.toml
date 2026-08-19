@@ -1,0 +1,51 @@
+[project]
+name = "formalizer"
+version = "0.1.0"
+description = "A simple Lean formalization agent"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+dependencies = [
+    "pydantic-ai-slim[openai]>=2.32,<3",
+]
+
+[project.scripts]
+formalizer = "formalizer.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.3",
+    "ty>=0.0.72",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+extend-select = ["B", "I", "SIM", "UP"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pytest]
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+    "-m",
+    "not integration and not model",
+]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: requires the real Docker, Lean, or Loogle environment",
+    "model: makes requests to a real language model endpoint",
+]
