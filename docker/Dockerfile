@@ -7,7 +7,8 @@ ARG MATHLIB_REV
 ARG LOOGLE_REV
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/root/.elan/bin:${PATH}"
+ENV ELAN_HOME=/opt/elan
+ENV PATH="${ELAN_HOME}/bin:${PATH}"
 
 # Minimal build/install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -59,6 +60,14 @@ RUN cd /opt/mathlib \
          --index-mode write \
          --max-results 1 \
          'Nat.add_comm'
+
+# The runtime user must be able to read the root-built toolchains and caches.
+# Git also needs to trust the immutable, root-owned Lake dependency checkouts.
+RUN chmod -R a+rX /opt/elan /opt/mathlib /opt/loogle \
+    && git config --system --add safe.directory /opt/mathlib \
+    && for repo in /opt/mathlib/.lake/packages/*; do \
+         git config --system --add safe.directory "${repo}"; \
+       done
 
 # ------------------------------------------------------------------
 # Runtime environment
