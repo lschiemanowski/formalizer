@@ -40,7 +40,7 @@ async def test_invalid_lean_file_is_rejected_with_diagnostics() -> None:
     assert "error:" in result.stdout + result.stderr
 
 
-async def formalizer_lean_container_ids() -> list[str]:
+async def formalizer_lean_container_ids() -> set[str]:
     process = await asyncio.create_subprocess_exec(
         "docker",
         "ps",
@@ -56,7 +56,43 @@ async def formalizer_lean_container_ids() -> list[str]:
     if process.returncode != 0:
         raise RuntimeError(stderr.decode(errors="replace"))
 
-    return stdout.decode().splitlines()
+    return set(stdout.decode().splitlines())
+
+
+async def wait_for_new_formalizer_container(
+    existing: set[str],
+) -> str:
+    async with asyncio.timeout(10):
+        while True:
+            new_containers = (await formalizer_lean_container_ids()) - existing
+
+            if new_containers:
+                return next(iter(new_containers))
+
+            await asyncio.sleep(0.05)
+
+
+@pytest.mark.integration
+async def test_cancelled_lean_check_removes_its_container() -> None:
+    containers_before = await formalizer_lean_container_ids()
+    checker = DockerLeanChecker(SandboxSettings())
+
+    task = asyncio.create_task(
+        checker.check(
+            """
+            run_cmd IO.sleep 60_000
+            """
+        )
+    )
+
+    await wait_for_new_formalizer_container(containers_before)
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    containers_after = await formalizer_lean_container_ids()
+    assert containers_after <= containers_before
 
 
 @pytest.mark.integration

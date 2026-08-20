@@ -96,13 +96,8 @@ class DockerLeanChecker:
             )
 
         except TimeoutError:
-            if process.returncode is None:
-                with suppress(ProcessLookupError):
-                    process.kill()
+            stdout_bytes, stderr_bytes = await self._terminate_and_remove(process, container_name)
 
-            stdout_bytes, stderr_bytes = await process.communicate()
-
-            await self._remove_container(container_name)
             stdout = stdout_bytes.decode(errors="replace")
             stderr = stderr_bytes.decode(errors="replace")
             timeout_message = f"Lean check timed out after {self.settings.lean_timeout_s} seconds"
@@ -115,6 +110,15 @@ class DockerLeanChecker:
                 duration_s=monotonic() - started_at,
                 timed_out=True,
             )
+
+        except asyncio.CancelledError:
+            await asyncio.shield(
+                self._terminate_and_remove(
+                    process,
+                    container_name,
+                )
+            )
+            raise
 
         stdout = stdout_bytes.decode(errors="replace")
         stderr = stderr_bytes.decode(errors="replace")
@@ -177,3 +181,17 @@ class DockerLeanChecker:
             raise LeanInfrastructureError(
                 f"Container {container_name} still exists after removal: {diagnostic}"
             )
+
+    async def _terminate_and_remove(
+        self,
+        process: asyncio.subprocess.Process,
+        container_name: str,
+    ) -> tuple[bytes, bytes]:
+        if process.returncode is None:
+            with suppress(ProcessLookupError):
+                process.kill()
+
+        stdout, stderr = await process.communicate()
+        await self._remove_container(container_name)
+
+        return stdout, stderr
