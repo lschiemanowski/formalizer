@@ -15,7 +15,6 @@ class LeanResult:
     exit_code: int | None
     duration_s: float
     timed_out: bool = False
-    output_truncated: bool = False
 
     @property
     def accepted(self) -> bool:
@@ -48,6 +47,8 @@ class DockerLeanChecker:
             "--network",
             "none",
             "--read-only",
+            "--log-driver",
+            "none",
             "--user",
             "10001:10001",
             "--cap-drop",

@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from formalizer.lean import DockerLeanChecker
+from formalizer.lean import DockerLeanChecker, LeanInfrastructureError
 from formalizer.settings import SandboxSettings
 
 
@@ -116,3 +116,35 @@ async def test_timed_out_lean_check_removes_its_container() -> None:
 
     containers_after = set(await formalizer_lean_container_ids())
     assert containers_after <= containers_before
+
+
+@pytest.mark.integration
+async def test_missing_image_is_an_infrastructure_error() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(
+            docker_image="formalizer-image-that-does-not-exist",
+        )
+    )
+
+    with pytest.raises(LeanInfrastructureError):
+        await checker.check("example : True := by trivial")
+
+
+@pytest.mark.integration
+async def test_candidate_cannot_modify_mathlib() -> None:
+    checker = DockerLeanChecker(SandboxSettings())
+
+    result = await checker.check(
+        """
+        import Mathlib
+
+        run_cmd
+          IO.FS.writeFile
+            "/opt/mathlib/formalizer-write-probe"
+            "modified"
+        """
+    )
+
+    assert not result.accepted
+    assert result.exit_code != 0
+    assert "/opt/mathlib/formalizer-write-probe" in (result.stdout + result.stderr)
