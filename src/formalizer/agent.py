@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from pydantic_ai import Agent, ModelRetry, RunContext, ToolOutput
+from pydantic_ai import Agent, ModelRetry, ModelSettings, RunContext, ToolOutput
 from pydantic_ai.models import Model
 
 from formalizer.lean import LeanChecker, LeanResult
@@ -70,11 +70,14 @@ async def final_submission(
 
 def create_agent(
     model: Model | str,
+    *,
+    model_settings: ModelSettings | None = None,
 ) -> Agent[AgentDependencies, VerifiedSubmission]:
     return Agent[AgentDependencies, VerifiedSubmission](
         model,
         deps_type=AgentDependencies,
         instructions=_INSTRUCTIONS,
+        model_settings=model_settings,
         tools=[mathlib_search, lean_execute],
         output_type=ToolOutput[VerifiedSubmission](
             final_submission,

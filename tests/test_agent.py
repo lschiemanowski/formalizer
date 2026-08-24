@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 
+from pydantic_ai import ModelSettings
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
@@ -238,3 +239,32 @@ async def test_mathlib_search_returns_results_without_ending_the_run() -> None:
     assert search_backend.queries == ["Nat.add_comm"]
     assert checker.checked_code == [VALID_CODE]
     assert result.output == VerifiedSubmission(code=VALID_CODE)
+
+
+async def test_agent_applies_configured_model_settings() -> None:
+    checker = FakeLeanChecker([LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)])
+    model_settings = ModelSettings(temperature=0.2, max_tokens=4096)
+
+    async def assert_model_settings(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        assert messages
+        assert agent_info.model_settings == model_settings
+        return final_submission_response(VALID_CODE)
+
+    agent = create_agent(
+        FunctionModel(assert_model_settings),
+        model_settings=model_settings,
+    )
+
+    result = await agent.run(
+        "Prove that 1 + 1 = 2.",
+        deps=AgentDependencies(
+            lean_checker=checker,
+            search_backend=UnexpectedSearchBackend(),
+        ),
+    )
+
+    assert result.output == VerifiedSubmission(code=VALID_CODE)
+    assert checker.checked_code == [VALID_CODE]
