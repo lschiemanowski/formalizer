@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
-from pydantic_ai import ModelSettings
+from pydantic_ai import ModelSettings, UsageLimits
 
 type NonBlankString = Annotated[
     str,
@@ -36,6 +36,7 @@ class RunSettings(BaseModel):
 
     runs_dir: Path = Path("runs")
     run_timeout_s: float = Field(default=1_800, gt=0)
+    usage_limits: UsageLimits = Field(default_factory=UsageLimits)
 
 
 class Settings(BaseModel):
