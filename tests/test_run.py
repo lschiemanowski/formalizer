@@ -1,10 +1,12 @@
 import asyncio
 import json
 from pathlib import Path
+from types import TracebackType
+from typing import Self
 from uuid import UUID
 
 import pytest
-from pydantic_ai import UnexpectedModelBehavior, UsageLimitExceeded, UsageLimits
+from pydantic_ai import ModelSettings, UnexpectedModelBehavior, UsageLimitExceeded, UsageLimits
 from pydantic_ai.messages import (
     ModelMessage,
     ModelMessagesTypeAdapter,
@@ -15,11 +17,12 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
+import formalizer.run as run_module
 from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
 from formalizer.lean import LeanResult
 from formalizer.run import RunManifest, run_formalizer
 from formalizer.search import SearchResult
-from formalizer.settings import RunSettings
+from formalizer.settings import RunSettings, SandboxSettings, Settings
 
 PROBLEM = "Prove that 1 + 1 = 2."
 VALID_CODE = """import Mathlib
@@ -59,6 +62,25 @@ class RejectingLeanChecker:
 class UnexpectedSearchBackend:
     async def search(self, query: str) -> SearchResult:
         raise AssertionError(f"Search was not expected: {query}")
+
+
+class ManagedSearchBackend(UnexpectedSearchBackend):
+    def __init__(self, events: list[str]) -> None:
+        self.events = events
+        self.exit_error: BaseException | None = None
+
+    async def __aenter__(self) -> Self:
+        self.events.append("enter search")
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.exit_error = exc
+        self.events.append("exit search")
 
 
 async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
@@ -330,3 +352,123 @@ async def test_model_request_limit_is_enforced_and_persisted(
     assert manifest["status"] == "failed"
     assert manifest["error_type"] == "UsageLimitExceeded"
     assert not (run_dir / "final.lean").exists()
+
+
+async def test_formalize_wires_settings_and_manages_search_backend(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    settings = Settings(
+        model_name="test:model",
+        model_settings=ModelSettings(temperature=0.2, max_tokens=4096),
+        sandbox=SandboxSettings(docker_image="formalizer:test"),
+        run=RunSettings(runs_dir=tmp_path),
+    )
+    events: list[str] = []
+    checker = AcceptingLeanChecker()
+    search_backend = ManagedSearchBackend(events)
+    expected_agent = object()
+    expected_result = object()
+    lean_settings: list[SandboxSettings] = []
+    search_settings: list[SandboxSettings] = []
+    model_names: list[object] = []
+    seen_model_settings: list[ModelSettings | None] = []
+    run_problems: list[str] = []
+    run_agents: list[object] = []
+    run_dependencies: list[AgentDependencies] = []
+    run_settings: list[RunSettings] = []
+
+    def fake_lean_checker(sandbox_settings: SandboxSettings) -> AcceptingLeanChecker:
+        lean_settings.append(sandbox_settings)
+        return checker
+
+    def fake_search_backend(sandbox_settings: SandboxSettings) -> ManagedSearchBackend:
+        search_settings.append(sandbox_settings)
+        return search_backend
+
+    def fake_create_agent(
+        model: object,
+        *,
+        model_settings: ModelSettings | None = None,
+    ) -> object:
+        model_names.append(model)
+        seen_model_settings.append(model_settings)
+        return expected_agent
+
+    async def fake_run_formalizer(
+        problem: str,
+        *,
+        agent: object,
+        deps: AgentDependencies,
+        settings: RunSettings,
+    ) -> object:
+        events.append("run")
+        run_problems.append(problem)
+        run_agents.append(agent)
+        run_dependencies.append(deps)
+        run_settings.append(settings)
+        return expected_result
+
+    monkeypatch.setattr(run_module, "DockerLeanChecker", fake_lean_checker)
+    monkeypatch.setattr(run_module, "DockerLoogleBackend", fake_search_backend)
+    monkeypatch.setattr(run_module, "create_agent", fake_create_agent)
+    monkeypatch.setattr(run_module, "run_formalizer", fake_run_formalizer)
+
+    result = await run_module.formalize(PROBLEM, settings)
+
+    assert result is expected_result
+    assert lean_settings == [settings.sandbox]
+    assert search_settings == [settings.sandbox]
+    assert model_names == [settings.model_name]
+    assert seen_model_settings == [settings.model_settings]
+    assert run_problems == [PROBLEM]
+    assert run_agents == [expected_agent]
+    assert len(run_dependencies) == 1
+    assert run_dependencies[0].lean_checker is checker
+    assert run_dependencies[0].search_backend is search_backend
+    assert run_settings == [settings.run]
+    assert events == ["enter search", "run", "exit search"]
+
+
+async def test_formalize_closes_search_backend_when_run_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(model_name="test:model")
+    events: list[str] = []
+    search_backend = ManagedSearchBackend(events)
+    expected_error = RuntimeError("run failed")
+
+    def fake_lean_checker(settings: SandboxSettings) -> object:
+        return object()
+
+    def fake_search_backend(settings: SandboxSettings) -> ManagedSearchBackend:
+        return search_backend
+
+    def fake_create_agent(
+        model: object,
+        *,
+        model_settings: ModelSettings | None = None,
+    ) -> object:
+        return object()
+
+    async def fail_run(
+        problem: str,
+        *,
+        agent: object,
+        deps: AgentDependencies,
+        settings: RunSettings,
+    ) -> object:
+        events.append("run")
+        raise expected_error
+
+    monkeypatch.setattr(run_module, "DockerLeanChecker", fake_lean_checker)
+    monkeypatch.setattr(run_module, "DockerLoogleBackend", fake_search_backend)
+    monkeypatch.setattr(run_module, "create_agent", fake_create_agent)
+    monkeypatch.setattr(run_module, "run_formalizer", fail_run)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await run_module.formalize(PROBLEM, settings)
+
+    assert exc_info.value is expected_error
+    assert search_backend.exit_error is expected_error
+    assert events == ["enter search", "run", "exit search"]

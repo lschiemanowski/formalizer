@@ -8,8 +8,10 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent, AgentRunResult, capture_run_messages
 from pydantic_ai.messages import ModelMessagesTypeAdapter
 
-from formalizer.agent import AgentDependencies, VerifiedSubmission
-from formalizer.settings import RunSettings
+from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
+from formalizer.lean import DockerLeanChecker
+from formalizer.search import DockerLoogleBackend
+from formalizer.settings import RunSettings, Settings
 
 
 class RunManifest(BaseModel):
@@ -85,3 +87,25 @@ async def run_formalizer(
     (run_dir / "final.lean").write_text(result.output.code, encoding="utf-8")
 
     return result
+
+
+async def formalize(
+    problem: str,
+    settings: Settings,
+) -> AgentRunResult[VerifiedSubmission]:
+    lean_checker = DockerLeanChecker(settings.sandbox)
+    agent = create_agent(
+        settings.model_name,
+        model_settings=settings.model_settings,
+    )
+
+    async with DockerLoogleBackend(settings.sandbox) as search_backend:
+        return await run_formalizer(
+            problem,
+            agent=agent,
+            deps=AgentDependencies(
+                lean_checker=lean_checker,
+                search_backend=search_backend,
+            ),
+            settings=settings.run,
+        )
