@@ -358,6 +358,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    run_id = UUID("6628e2cf-3404-4f30-a146-c9c00e6e05ef")
     settings = Settings(
         model_name="test:model",
         model_settings=ModelSettings(temperature=0.2, max_tokens=4096),
@@ -377,6 +378,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     run_agents: list[object] = []
     run_dependencies: list[AgentDependencies] = []
     run_settings: list[RunSettings] = []
+    run_ids: list[UUID | None] = []
 
     def fake_lean_checker(sandbox_settings: SandboxSettings) -> AcceptingLeanChecker:
         lean_settings.append(sandbox_settings)
@@ -401,12 +403,14 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         agent: object,
         deps: AgentDependencies,
         settings: RunSettings,
+        run_id: UUID | None = None,
     ) -> object:
         events.append("run")
         run_problems.append(problem)
         run_agents.append(agent)
         run_dependencies.append(deps)
         run_settings.append(settings)
+        run_ids.append(run_id)
         return expected_result
 
     monkeypatch.setattr(run_module, "DockerLeanChecker", fake_lean_checker)
@@ -414,7 +418,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     monkeypatch.setattr(run_module, "create_agent", fake_create_agent)
     monkeypatch.setattr(run_module, "run_formalizer", fake_run_formalizer)
 
-    result = await run_module.formalize(PROBLEM, settings)
+    result = await run_module.formalize(PROBLEM, settings, run_id=run_id)
 
     assert result is expected_result
     assert lean_settings == [settings.sandbox]
@@ -427,6 +431,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     assert run_dependencies[0].lean_checker is checker
     assert run_dependencies[0].search_backend is search_backend
     assert run_settings == [settings.run]
+    assert run_ids == [run_id]
     assert events == ["enter search", "run", "exit search"]
 
 
@@ -457,7 +462,9 @@ async def test_formalize_closes_search_backend_when_run_fails(
         agent: object,
         deps: AgentDependencies,
         settings: RunSettings,
+        run_id: UUID | None = None,
     ) -> object:
+        assert run_id is None
         events.append("run")
         raise expected_error
 

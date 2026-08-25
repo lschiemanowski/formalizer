@@ -92,6 +92,8 @@ async def run_formalizer(
 async def formalize(
     problem: str,
     settings: Settings,
+    *,
+    run_id: UUID | None = None,
 ) -> AgentRunResult[VerifiedSubmission]:
     lean_checker = DockerLeanChecker(settings.sandbox)
     agent = create_agent(
@@ -108,4 +110,5 @@ async def formalize(
                 search_backend=search_backend,
             ),
             settings=settings.run,
+            run_id=run_id,
         )
