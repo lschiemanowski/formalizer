@@ -2,15 +2,29 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from formalizer.problem import FormalizationProblem
 
 import formalizer.cli as cli_module
 from formalizer.agent import VerifiedSubmission
 from formalizer.settings import Settings
 
-PROBLEM = "Prove that 1 + 1 = 2."
-VALID_CODE = """import Mathlib
+PROBLEM = """import Mathlib.Data.Nat.Basic
 
-example : 1 + 1 = 2 := by norm_num
+namespace FormalizerProblem
+
+def Target : Prop := 1 + 1 = 2
+
+end FormalizerProblem
+"""
+VALID_CODE = """import FormalizerProblem
+import Mathlib.Tactic
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
+  norm_num [FormalizerProblem.Target]
+
+end FormalizerSubmission
 """
 
 
@@ -39,9 +53,12 @@ def test_cli_translates_arguments_into_settings(
     tmp_path: Path,
 ) -> None:
     runs_dir = tmp_path / "formalizer-runs"
-    calls: list[tuple[str, Settings]] = []
+    calls: list[tuple[FormalizationProblem, Settings]] = []
 
-    async def record_formalize(problem: str, settings: Settings) -> FakeRunResult:
+    async def record_formalize(
+        problem: FormalizationProblem,
+        settings: Settings,
+    ) -> FakeRunResult:
         calls.append((problem, settings))
         return FakeRunResult(output=VerifiedSubmission(code=VALID_CODE))
 
@@ -60,7 +77,7 @@ def test_cli_translates_arguments_into_settings(
     assert exit_code == 0
     assert len(calls) == 1
     problem, settings = calls[0]
-    assert problem == PROBLEM
+    assert problem == FormalizationProblem(source=PROBLEM)
     assert settings.model_name == "test:model"
     assert settings.run.runs_dir == runs_dir
 
@@ -78,7 +95,7 @@ def test_cli_prints_verified_lean_code_with_trailing_newline(
     code: str,
     expected_stdout: str,
 ) -> None:
-    async def succeed(problem: str, settings: Settings) -> FakeRunResult:
+    async def succeed(problem: FormalizationProblem, settings: Settings) -> FakeRunResult:
         return FakeRunResult(output=VerifiedSubmission(code=code))
 
     monkeypatch.setattr(cli_module, "formalize", succeed, raising=False)
@@ -95,7 +112,7 @@ def test_cli_reports_runtime_failure(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def fail(problem: str, settings: Settings) -> FakeRunResult:
+    async def fail(problem: FormalizationProblem, settings: Settings) -> FakeRunResult:
         raise RuntimeError("model request failed")
 
     monkeypatch.setattr(cli_module, "formalize", fail, raising=False)
@@ -113,7 +130,7 @@ def test_cli_handles_keyboard_interrupt(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    async def interrupt(problem: str, settings: Settings) -> FakeRunResult:
+    async def interrupt(problem: FormalizationProblem, settings: Settings) -> FakeRunResult:
         raise KeyboardInterrupt
 
     monkeypatch.setattr(cli_module, "formalize", interrupt, raising=False)

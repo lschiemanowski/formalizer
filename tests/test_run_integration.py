@@ -2,6 +2,7 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
+from formalizer.problem import FormalizationProblem
 from pydantic_ai.messages import (
     ModelMessage,
     ModelMessagesTypeAdapter,
@@ -17,10 +18,24 @@ from formalizer.run import RunManifest, run_formalizer
 from formalizer.search import DockerLoogleBackend, SearchResult
 from formalizer.settings import RunSettings, SandboxSettings
 
-PROBLEM = "Prove that 1 + 1 = 2."
-VALID_CODE = """import Mathlib
+PROBLEM_SOURCE = """import Mathlib.Data.Nat.Basic
 
-example : 1 + 1 = 2 := by norm_num
+namespace FormalizerProblem
+
+def Target : Prop := 1 + 1 = 2
+
+end FormalizerProblem
+"""
+PROBLEM = FormalizationProblem(source=PROBLEM_SOURCE)
+VALID_CODE = """import FormalizerProblem
+import Mathlib.Tactic
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
+  norm_num [FormalizerProblem.Target]
+
+end FormalizerSubmission
 """
 
 
@@ -99,7 +114,10 @@ async def test_docker_backed_run_uses_tools_and_persists_verified_artifacts(
         raise AssertionError("The agent made an unexpected additional model request")
 
     sandbox_settings = SandboxSettings()
-    checker = DockerLeanChecker(sandbox_settings)
+    checker = DockerLeanChecker(
+        sandbox_settings,
+        problem_code=PROBLEM.source,
+    )
 
     async with DockerLoogleBackend(sandbox_settings) as search_backend:
         result = await run_formalizer(
@@ -132,4 +150,5 @@ async def test_docker_backed_run_uses_tools_and_persists_verified_artifacts(
     assert manifest.run_id == run_id
     assert manifest.problem == PROBLEM
     assert manifest.status == "verified"
+    assert (run_dir / "problem.lean").read_text() == PROBLEM.source
     assert (run_dir / "final.lean").read_text() == VALID_CODE

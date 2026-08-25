@@ -8,8 +8,9 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent, AgentRunResult, capture_run_messages
 from pydantic_ai.messages import ModelMessagesTypeAdapter
 
-from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
+from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent, problem_prompt
 from formalizer.lean import DockerLeanChecker
+from formalizer.problem import FormalizationProblem
 from formalizer.search import DockerLoogleBackend
 from formalizer.settings import RunSettings, Settings
 
@@ -21,7 +22,7 @@ class RunManifest(BaseModel):
     )
 
     run_id: UUID
-    problem: str
+    problem: FormalizationProblem
     status: Literal["verified", "failed"]
     started_at: datetime
     finished_at: datetime
@@ -37,7 +38,7 @@ def _write_manifest(run_dir: Path, manifest: RunManifest) -> None:
 
 
 async def run_formalizer(
-    problem: str,
+    problem: FormalizationProblem,
     *,
     agent: Agent[AgentDependencies, VerifiedSubmission],
     deps: AgentDependencies,
@@ -49,12 +50,13 @@ async def run_formalizer(
     run_dir = settings.runs_dir / run_id_text
     started_at = datetime.now(UTC)
     run_dir.mkdir(parents=True)
+    (run_dir / "problem.lean").write_text(problem.source, encoding="utf-8")
 
     with capture_run_messages() as messages:
         try:
             async with asyncio.timeout(settings.run_timeout_s):
                 result = await agent.run(
-                    problem,
+                    problem_prompt(problem),
                     deps=deps,
                     run_id=run_id_text,
                     usage_limits=settings.usage_limits,
@@ -90,12 +92,15 @@ async def run_formalizer(
 
 
 async def formalize(
-    problem: str,
+    problem: FormalizationProblem,
     settings: Settings,
     *,
     run_id: UUID | None = None,
 ) -> AgentRunResult[VerifiedSubmission]:
-    lean_checker = DockerLeanChecker(settings.sandbox)
+    lean_checker = DockerLeanChecker(
+        settings.sandbox,
+        problem_code=problem.source,
+    )
     agent = create_agent(
         settings.model_name,
         model_settings=settings.model_settings,

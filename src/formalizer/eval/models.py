@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from formalizer.problem import FormalizationProblem
+
 
 class Problem(BaseModel):
     model_config = ConfigDict(
@@ -11,7 +13,7 @@ class Problem(BaseModel):
     )
 
     id: str
-    prompt: str
+    task: FormalizationProblem
 
 
 class TrialResult(BaseModel):

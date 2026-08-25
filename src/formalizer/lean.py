@@ -1,4 +1,6 @@
 import asyncio
+import io
+import tarfile
 from contextlib import suppress
 from dataclasses import dataclass
 from time import monotonic
@@ -6,6 +8,47 @@ from typing import Protocol
 from uuid import uuid4
 
 from formalizer.settings import SandboxSettings
+
+_VERIFICATION_CODE = """\
+import FormalizerProblem
+import Main
+
+example : FormalizerProblem.Target :=
+  FormalizerSubmission.solution
+"""
+
+_STANDALONE_COMMAND = "cat > /workspace/Main.lean && exec lake env lean /workspace/Main.lean"
+
+_PROBLEM_CHECK_COMMAND = """\
+tar -xf - -C /workspace &&
+cd /opt/mathlib &&
+exec lake env sh -c '
+  export LEAN_PATH="/workspace${LEAN_PATH:+:$LEAN_PATH}"
+  lean --root=/workspace -o /workspace/FormalizerProblem.olean /workspace/FormalizerProblem.lean &&
+  lean --root=/workspace -o /workspace/Main.olean /workspace/Main.lean &&
+  lean --root=/workspace /workspace/FormalizerCheck.lean
+'
+"""
+
+
+def _source_archive(problem_code: str, solution_code: str) -> bytes:
+    sources = {
+        "FormalizerProblem.lean": problem_code,
+        "Main.lean": solution_code,
+        "FormalizerCheck.lean": _VERIFICATION_CODE,
+    }
+    buffer = io.BytesIO()
+
+    with tarfile.open(fileobj=buffer, mode="w", format=tarfile.USTAR_FORMAT) as archive:
+        for name, source in sources.items():
+            data = source.encode()
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            info.mode = 0o600
+            info.mtime = 0
+            archive.addfile(info, io.BytesIO(data))
+
+    return buffer.getvalue()
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,11 +73,24 @@ class LeanChecker(Protocol):
 
 
 class DockerLeanChecker:
-    def __init__(self, settings: SandboxSettings) -> None:
+    def __init__(
+        self,
+        settings: SandboxSettings,
+        *,
+        problem_code: str | None = None,
+    ) -> None:
         self.settings = settings
+        self.problem_code = problem_code
 
     async def check(self, code: str) -> LeanResult:
         container_name = f"formalizer-lean-{uuid4().hex}"
+        if self.problem_code is None:
+            command = _STANDALONE_COMMAND
+            stdin = code.encode()
+        else:
+            command = _PROBLEM_CHECK_COMMAND
+            stdin = _source_archive(self.problem_code, code)
+
         docker_argv = (
             "docker",
             "run",
@@ -76,7 +132,7 @@ class DockerLeanChecker:
             self.settings.docker_image,
             "sh",
             "-c",
-            ("cat > /workspace/Main.lean && exec lake env lean /workspace/Main.lean"),
+            command,
         )
 
         started_at = monotonic()
@@ -92,7 +148,7 @@ class DockerLeanChecker:
 
         try:
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                process.communicate(code.encode()),
+                process.communicate(stdin),
                 timeout=self.settings.lean_timeout_s,
             )
 

@@ -6,6 +6,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from formalizer.problem import FormalizationProblem
 from formalizer.run import formalize
 from formalizer.settings import RunSettings, Settings
 
@@ -17,7 +18,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "problem",
-        help="Mathematical problem to formalize",
+        help="Trusted FormalizerProblem.lean source",
     )
     parser.add_argument(
         "--model",
@@ -42,7 +43,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             model_name=args.model,
             run=RunSettings(runs_dir=args.runs_dir),
         )
-        result = asyncio.run(formalize(args.problem, settings))
+        result = asyncio.run(
+            formalize(
+                FormalizationProblem(source=args.problem),
+                settings,
+            )
+        )
     except KeyboardInterrupt:
         print("formalizer: interrupted", file=sys.stderr)
         return 130

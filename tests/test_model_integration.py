@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+from formalizer.problem import FormalizationProblem
 from pydantic_ai import ModelSettings, UsageLimits, models
 
 from formalizer.agent import VerifiedSubmission
@@ -10,7 +11,17 @@ from formalizer.settings import RunSettings, Settings
 
 _MODEL_NAME = "openrouter:deepseek/deepseek-v4-flash-0731"
 _API_KEY_ENV_VAR = "OPENROUTER_API_KEY"
-_PROBLEM = "Prove that 1 + 1 = 2."
+_PROBLEM = FormalizationProblem(
+    source="""\
+import Mathlib.Data.Nat.Basic
+
+namespace FormalizerProblem
+
+def Target : Prop := 1 + 1 = 2
+
+end FormalizerProblem
+"""
+)
 
 
 @pytest.mark.integration
@@ -47,4 +58,5 @@ async def test_deepseek_v4_flash_produces_a_persisted_verified_submission(
     assert manifest.problem == _PROBLEM
     assert manifest.status == "verified"
     assert (run_dir / "messages.json").stat().st_size > 0
+    assert (run_dir / "problem.lean").read_text() == _PROBLEM.source
     assert (run_dir / "final.lean").read_text() == result.output.code

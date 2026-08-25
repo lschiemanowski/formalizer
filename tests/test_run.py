@@ -6,6 +6,7 @@ from typing import Self
 from uuid import UUID
 
 import pytest
+from formalizer.problem import FormalizationProblem
 from pydantic_ai import ModelSettings, UnexpectedModelBehavior, UsageLimitExceeded, UsageLimits
 from pydantic_ai.messages import (
     ModelMessage,
@@ -14,6 +15,7 @@ from pydantic_ai.messages import (
     RetryPromptPart,
     ToolCallPart,
     ToolReturnPart,
+    UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
@@ -24,15 +26,33 @@ from formalizer.run import RunManifest, run_formalizer
 from formalizer.search import SearchResult
 from formalizer.settings import RunSettings, SandboxSettings, Settings
 
-PROBLEM = "Prove that 1 + 1 = 2."
-VALID_CODE = """import Mathlib
+PROBLEM_SOURCE = """import Mathlib.Data.Nat.Basic
 
-example : 1 + 1 = 2 := by norm_num
+namespace FormalizerProblem
+
+def Target : Prop := 1 + 1 = 2
+
+end FormalizerProblem
 """
-INVALID_CODE = """import Mathlib
+PROBLEM = FormalizationProblem(source=PROBLEM_SOURCE)
+VALID_CODE = """import FormalizerProblem
+import Mathlib.Tactic
 
-example : 1 + 1 = 2 := by
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
+  norm_num [FormalizerProblem.Target]
+
+end FormalizerSubmission
+"""
+INVALID_CODE = """import FormalizerProblem
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
   exact 0
+
+end FormalizerSubmission
 """
 
 
@@ -91,7 +111,15 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
         messages: list[ModelMessage],
         agent_info: AgentInfo,
     ) -> ModelResponse:
-        assert messages
+        user_prompts = [
+            part.content
+            for message in messages
+            for part in message.parts
+            if isinstance(part, UserPromptPart) and isinstance(part.content, str)
+        ]
+        assert len(user_prompts) == 1
+        assert PROBLEM.source in user_prompts[0]
+        assert "FormalizerSubmission.solution : FormalizerProblem.Target" in user_prompts[0]
         assert [tool.name for tool in agent_info.output_tools] == ["final_submission"]
         return ModelResponse(
             parts=[
@@ -128,6 +156,7 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
     assert manifest.status == "verified"
     assert manifest.started_at <= manifest.finished_at
     assert (run_dir / "final.lean").read_text() == VALID_CODE
+    assert (run_dir / "problem.lean").read_text() == PROBLEM.source
 
 
 async def test_failed_run_writes_diagnostics_without_final_lean(
@@ -189,12 +218,13 @@ async def test_failed_run_writes_diagnostics_without_final_lean(
         for prompt in retry_prompts
     )
     assert manifest["run_id"] == str(run_id)
-    assert manifest["problem"] == PROBLEM
+    assert manifest["problem"] == PROBLEM.model_dump()
     assert manifest["status"] == "failed"
     assert manifest["error_type"] == "UnexpectedModelBehavior"
     assert manifest["error"]
     assert manifest["started_at"] <= manifest["finished_at"]
     assert not (run_dir / "final.lean").exists()
+    assert (run_dir / "problem.lean").read_text() == PROBLEM.source
 
 
 async def test_cancelled_run_persists_its_error_type(tmp_path: Path) -> None:
@@ -374,14 +404,21 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     search_settings: list[SandboxSettings] = []
     model_names: list[object] = []
     seen_model_settings: list[ModelSettings | None] = []
-    run_problems: list[str] = []
+    run_problems: list[FormalizationProblem] = []
     run_agents: list[object] = []
     run_dependencies: list[AgentDependencies] = []
     run_settings: list[RunSettings] = []
     run_ids: list[UUID | None] = []
 
-    def fake_lean_checker(sandbox_settings: SandboxSettings) -> AcceptingLeanChecker:
+    problem_codes: list[str | None] = []
+
+    def fake_lean_checker(
+        sandbox_settings: SandboxSettings,
+        *,
+        problem_code: str | None = None,
+    ) -> AcceptingLeanChecker:
         lean_settings.append(sandbox_settings)
+        problem_codes.append(problem_code)
         return checker
 
     def fake_search_backend(sandbox_settings: SandboxSettings) -> ManagedSearchBackend:
@@ -398,7 +435,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         return expected_agent
 
     async def fake_run_formalizer(
-        problem: str,
+        problem: FormalizationProblem,
         *,
         agent: object,
         deps: AgentDependencies,
@@ -422,6 +459,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
 
     assert result is expected_result
     assert lean_settings == [settings.sandbox]
+    assert problem_codes == [PROBLEM.source]
     assert search_settings == [settings.sandbox]
     assert model_names == [settings.model_name]
     assert seen_model_settings == [settings.model_settings]
@@ -443,7 +481,12 @@ async def test_formalize_closes_search_backend_when_run_fails(
     search_backend = ManagedSearchBackend(events)
     expected_error = RuntimeError("run failed")
 
-    def fake_lean_checker(settings: SandboxSettings) -> object:
+    def fake_lean_checker(
+        settings: SandboxSettings,
+        *,
+        problem_code: str | None = None,
+    ) -> object:
+        assert problem_code == PROBLEM.source
         return object()
 
     def fake_search_backend(settings: SandboxSettings) -> ManagedSearchBackend:
@@ -457,7 +500,7 @@ async def test_formalize_closes_search_backend_when_run_fails(
         return object()
 
     async def fail_run(
-        problem: str,
+        problem: FormalizationProblem,
         *,
         agent: object,
         deps: AgentDependencies,

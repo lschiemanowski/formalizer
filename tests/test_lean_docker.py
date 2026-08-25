@@ -5,6 +5,67 @@ import pytest
 from formalizer.lean import DockerLeanChecker, LeanInfrastructureError
 from formalizer.settings import SandboxSettings
 
+TRUSTED_PROBLEM = """\
+import Mathlib.Data.Nat.Basic
+
+namespace FormalizerProblem
+
+def Target : Prop := 1 + 1 = 2
+
+end FormalizerProblem
+"""
+
+
+@pytest.mark.integration
+async def test_solution_can_add_imports_and_open_scopes() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerProblem
+import Mathlib.Tactic
+
+open scoped BigOperators
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
+  norm_num [FormalizerProblem.Target]
+
+end FormalizerSubmission
+"""
+    )
+
+    assert result.accepted
+
+
+@pytest.mark.integration
+async def test_unrelated_compiling_solution_is_rejected() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerProblem
+
+namespace FormalizerSubmission
+
+example : True := by
+  trivial
+
+end FormalizerSubmission
+"""
+    )
+
+    assert not result.accepted
+    assert result.exit_code != 0
+    assert "FormalizerSubmission.solution" in result.stdout + result.stderr
+
 
 @pytest.mark.integration
 async def test_valid_lean_file_is_accepted() -> None:

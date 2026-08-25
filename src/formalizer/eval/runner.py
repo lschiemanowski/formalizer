@@ -10,7 +10,7 @@ async def evaluate_problem(
     settings: Settings,
 ) -> TrialResult:
     run_id = uuid4()
-    await formalize(problem.prompt, settings, run_id=run_id)
+    await formalize(problem.task, settings, run_id=run_id)
     return TrialResult(
         problem_id=problem.id,
         run_id=run_id,
