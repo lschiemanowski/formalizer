@@ -20,7 +20,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 import formalizer.run as run_module
 from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
-from formalizer.lean import LeanResult
+from formalizer.lean import InvalidLeanProblem, LeanResult
 from formalizer.problem import FormalizationProblem
 from formalizer.run import RunManifest, run_formalizer
 from formalizer.search import SearchResult
@@ -77,6 +77,15 @@ class RejectingLeanChecker:
             exit_code=1,
             duration_s=0.1,
         )
+
+
+class ManagedLeanChecker(AcceptingLeanChecker):
+    def __init__(self, events: list[str]) -> None:
+        super().__init__()
+        self.events = events
+
+    async def validate_problem(self) -> None:
+        self.events.append("validate problem")
 
 
 class UnexpectedSearchBackend:
@@ -397,7 +406,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         run=RunSettings(runs_dir=tmp_path),
     )
     events: list[str] = []
-    checker = AcceptingLeanChecker()
+    checker = ManagedLeanChecker(events)
     search_backend = ManagedSearchBackend(events)
     expected_agent = object()
     expected_result = object()
@@ -417,7 +426,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         sandbox_settings: SandboxSettings,
         *,
         problem_code: str | None = None,
-    ) -> AcceptingLeanChecker:
+    ) -> ManagedLeanChecker:
         lean_settings.append(sandbox_settings)
         problem_codes.append(problem_code)
         return checker
@@ -431,6 +440,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         *,
         model_settings: ModelSettings | None = None,
     ) -> object:
+        events.append("create agent")
         model_names.append(model)
         seen_model_settings.append(model_settings)
         return expected_agent
@@ -471,7 +481,13 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     assert run_dependencies[0].search_backend is search_backend
     assert run_settings == [settings.run]
     assert run_ids == [run_id]
-    assert events == ["enter search", "run", "exit search"]
+    assert events == [
+        "validate problem",
+        "create agent",
+        "enter search",
+        "run",
+        "exit search",
+    ]
 
 
 async def test_formalize_closes_search_backend_when_run_fails(
@@ -479,6 +495,7 @@ async def test_formalize_closes_search_backend_when_run_fails(
 ) -> None:
     settings = Settings(model_name="test:model")
     events: list[str] = []
+    checker = ManagedLeanChecker(events)
     search_backend = ManagedSearchBackend(events)
     expected_error = RuntimeError("run failed")
 
@@ -486,9 +503,9 @@ async def test_formalize_closes_search_backend_when_run_fails(
         settings: SandboxSettings,
         *,
         problem_code: str | None = None,
-    ) -> object:
+    ) -> ManagedLeanChecker:
         assert problem_code == PROBLEM.source
-        return object()
+        return checker
 
     def fake_search_backend(settings: SandboxSettings) -> ManagedSearchBackend:
         return search_backend
@@ -498,6 +515,7 @@ async def test_formalize_closes_search_backend_when_run_fails(
         *,
         model_settings: ModelSettings | None = None,
     ) -> object:
+        events.append("create agent")
         return object()
 
     async def fail_run(
@@ -522,4 +540,56 @@ async def test_formalize_closes_search_backend_when_run_fails(
 
     assert exc_info.value is expected_error
     assert search_backend.exit_error is expected_error
-    assert events == ["enter search", "run", "exit search"]
+    assert events == [
+        "validate problem",
+        "create agent",
+        "enter search",
+        "run",
+        "exit search",
+    ]
+
+
+async def test_formalize_stops_before_agent_and_search_when_problem_is_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    settings = Settings(
+        model_name="test:model",
+        run=RunSettings(runs_dir=tmp_path),
+    )
+    events: list[str] = []
+    expected_error = InvalidLeanProblem("trusted problem is invalid")
+
+    class InvalidProblemChecker:
+        async def validate_problem(self) -> None:
+            events.append("validate problem")
+            raise expected_error
+
+    def fake_lean_checker(
+        settings: SandboxSettings,
+        *,
+        problem_code: str | None = None,
+    ) -> InvalidProblemChecker:
+        assert problem_code == PROBLEM.source
+        return InvalidProblemChecker()
+
+    def unexpected_create_agent(
+        model: object,
+        *,
+        model_settings: ModelSettings | None = None,
+    ) -> object:
+        raise AssertionError("Agent creation was not expected")
+
+    def unexpected_search_backend(settings: SandboxSettings) -> object:
+        raise AssertionError("Search startup was not expected")
+
+    monkeypatch.setattr(run_module, "DockerLeanChecker", fake_lean_checker)
+    monkeypatch.setattr(run_module, "create_agent", unexpected_create_agent)
+    monkeypatch.setattr(run_module, "DockerLoogleBackend", unexpected_search_backend)
+
+    with pytest.raises(InvalidLeanProblem) as exc_info:
+        await run_module.formalize(PROBLEM, settings)
+
+    assert exc_info.value is expected_error
+    assert events == ["validate problem"]
+    assert list(tmp_path.iterdir()) == []

@@ -3,7 +3,7 @@ import io
 import re
 import tarfile
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from time import monotonic
 from typing import Protocol
 from uuid import uuid4
@@ -18,6 +18,12 @@ example : FormalizerProblem.Target :=
   FormalizerSubmission.solution
 
 #print axioms FormalizerSubmission.solution
+"""
+
+_PROBLEM_VALIDATION_CODE = """\
+import FormalizerProblem
+
+#check FormalizerProblem.Target
 """
 
 _ALLOWED_AXIOMS = frozenset(
@@ -48,13 +54,18 @@ exec lake env sh -c '
 '
 """
 
+_PROBLEM_VALIDATION_COMMAND = """\
+tar -xf - -C /workspace &&
+cd /opt/mathlib &&
+exec lake env sh -c '
+  export LEAN_PATH="/workspace${LEAN_PATH:+:$LEAN_PATH}"
+  lean --root=/workspace -o /workspace/FormalizerProblem.olean /workspace/FormalizerProblem.lean &&
+  lean --root=/workspace /workspace/FormalizerValidation.lean
+'
+"""
 
-def _source_archive(problem_code: str, solution_code: str) -> bytes:
-    sources = {
-        "FormalizerProblem.lean": problem_code,
-        "Main.lean": solution_code,
-        "FormalizerCheck.lean": _VERIFICATION_CODE,
-    }
+
+def _sources_archive(sources: dict[str, str]) -> bytes:
     buffer = io.BytesIO()
 
     with tarfile.open(fileobj=buffer, mode="w", format=tarfile.USTAR_FORMAT) as archive:
@@ -67,6 +78,25 @@ def _source_archive(problem_code: str, solution_code: str) -> bytes:
             archive.addfile(info, io.BytesIO(data))
 
     return buffer.getvalue()
+
+
+def _source_archive(problem_code: str, solution_code: str) -> bytes:
+    return _sources_archive(
+        {
+            "FormalizerProblem.lean": problem_code,
+            "Main.lean": solution_code,
+            "FormalizerCheck.lean": _VERIFICATION_CODE,
+        }
+    )
+
+
+def _problem_validation_archive(problem_code: str) -> bytes:
+    return _sources_archive(
+        {
+            "FormalizerProblem.lean": problem_code,
+            "FormalizerValidation.lean": _PROBLEM_VALIDATION_CODE,
+        }
+    )
 
 
 def _reported_axioms(stdout: str) -> frozenset[str]:
@@ -98,6 +128,10 @@ class LeanInfrastructureError(RuntimeError):
     """Lean could not be invoked reliably."""
 
 
+class InvalidLeanProblem(ValueError):
+    """The trusted problem source is not a valid formalization problem."""
+
+
 class LeanChecker(Protocol):
     async def check(self, code: str) -> LeanResult: ...
 
@@ -112,8 +146,25 @@ class DockerLeanChecker:
         self.settings = settings
         self.problem_code = problem_code
 
+    async def validate_problem(self) -> None:
+        if self.problem_code is None:
+            raise ValueError("Cannot validate without problem_code")
+
+        result = await self._run(
+            _PROBLEM_VALIDATION_COMMAND,
+            _problem_validation_archive(self.problem_code),
+        )
+
+        if result.timed_out:
+            raise LeanInfrastructureError("Trusted problem validation timed out")
+
+        if result.exit_code != 0:
+            diagnostic = "\n".join(
+                output.strip() for output in (result.stdout, result.stderr) if output.strip()
+            )
+            raise InvalidLeanProblem(diagnostic or f"Lean exited with status {result.exit_code}")
+
     async def check(self, code: str) -> LeanResult:
-        container_name = f"formalizer-lean-{uuid4().hex}"
         if self.problem_code is None:
             command = _STANDALONE_COMMAND
             stdin = code.encode()
@@ -121,6 +172,22 @@ class DockerLeanChecker:
             command = _PROBLEM_CHECK_COMMAND
             stdin = _source_archive(self.problem_code, code)
 
+        result = await self._run(command, stdin)
+
+        if self.problem_code is not None and result.exit_code == 0:
+            disallowed_axioms = sorted(_reported_axioms(result.stdout) - _ALLOWED_AXIOMS)
+            if disallowed_axioms:
+                return replace(
+                    result,
+                    verification_error=(
+                        "Solution depends on disallowed axioms: " + ", ".join(disallowed_axioms)
+                    ),
+                )
+
+        return result
+
+    async def _run(self, command: str, stdin: bytes) -> LeanResult:
+        container_name = f"formalizer-lean-{uuid4().hex}"
         docker_argv = (
             "docker",
             "run",
@@ -219,20 +286,11 @@ class DockerLeanChecker:
             diagnostic = stderr or stdout or f"Docker exited with status {exit_code}"
             raise LeanInfrastructureError(diagnostic)
 
-        verification_error = None
-        if self.problem_code is not None and exit_code == 0:
-            disallowed_axioms = sorted(_reported_axioms(stdout) - _ALLOWED_AXIOMS)
-            if disallowed_axioms:
-                verification_error = "Solution depends on disallowed axioms: " + ", ".join(
-                    disallowed_axioms
-                )
-
         return LeanResult(
             stdout=stdout,
             stderr=stderr,
             exit_code=exit_code,
             duration_s=duration_s,
-            verification_error=verification_error,
         )
 
     async def _container_exists(self, container_name: str) -> bool:

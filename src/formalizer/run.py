@@ -101,6 +101,8 @@ async def formalize(
         settings.sandbox,
         problem_code=problem.source,
     )
+    await lean_checker.validate_problem()
+
     agent = create_agent(
         settings.model_name,
         model_settings=settings.model_settings,

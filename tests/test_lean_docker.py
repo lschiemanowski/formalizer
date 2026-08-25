@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from formalizer.lean import DockerLeanChecker, LeanInfrastructureError
+from formalizer.lean import DockerLeanChecker, InvalidLeanProblem, LeanInfrastructureError
 from formalizer.settings import SandboxSettings
 
 TRUSTED_PROBLEM = """\
@@ -24,6 +24,56 @@ def Target : Prop := ∀ p : Prop, p ∨ ¬p
 
 end FormalizerProblem
 """
+
+
+@pytest.mark.integration
+async def test_valid_trusted_problem_passes_validation() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    await checker.validate_problem()
+
+
+@pytest.mark.integration
+async def test_invalid_trusted_problem_reports_lean_diagnostics() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code="""\
+namespace FormalizerProblem
+
+def Target : Prop := 1 + 1
+
+end FormalizerProblem
+""",
+    )
+
+    with pytest.raises(InvalidLeanProblem) as exc_info:
+        await checker.validate_problem()
+
+    diagnostic = str(exc_info.value)
+    assert "FormalizerProblem.lean" in diagnostic
+    assert "failed to synthesize" in diagnostic
+
+
+@pytest.mark.integration
+async def test_trusted_problem_without_target_is_invalid() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code="""\
+namespace FormalizerProblem
+
+def Other : Prop := True
+
+end FormalizerProblem
+""",
+    )
+
+    with pytest.raises(InvalidLeanProblem) as exc_info:
+        await checker.validate_problem()
+
+    assert "FormalizerProblem.Target" in str(exc_info.value)
 
 
 @pytest.mark.integration
