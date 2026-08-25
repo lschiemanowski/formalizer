@@ -1,29 +1,22 @@
+from dataclasses import dataclass
 from typing import Literal
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from formalizer.problem import FormalizationProblem
+from formalizer.agent import Submission
 
 
-class Problem(BaseModel):
+class ProblemMetadata(BaseModel):
     model_config = ConfigDict(
         frozen=True,
         extra="forbid",
     )
 
-    id: str
-    task: FormalizationProblem
+    difficulty: Literal["easy", "medium", "hard"]
+    split: Literal["train", "validation", "test"]
 
 
-class TrialResult(BaseModel):
-    model_config = ConfigDict(
-        frozen=True,
-        extra="forbid",
-    )
-
-    problem_id: str
-    run_id: UUID
-    status: Literal["verified", "failed"]
-    error_type: str | None = None
-    error: str | None = None
+@dataclass(frozen=True, slots=True)
+class EvalOutput:
+    run_id: str
+    submission: Submission
