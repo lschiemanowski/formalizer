@@ -30,6 +30,8 @@ Formalizer verifies your Main.lean by compiling it and then compiling this trust
     example : FormalizerProblem.Target :=
       FormalizerSubmission.solution
 
+    #print axioms FormalizerSubmission.solution
+
 Therefore, Main.lean must expose FormalizerSubmission.solution with a type definitionally equal to
 FormalizerProblem.Target. Merely compiling some other theorem or example does not solve the task.
 
@@ -97,7 +99,9 @@ Here is FormalizerProblem.lean:
 
 def _rejection_diagnostic(result: LeanResult) -> str:
     diagnostic = "\n".join(
-        output.strip() for output in (result.stdout, result.stderr) if output.strip()
+        output.strip()
+        for output in (result.verification_error, result.stdout, result.stderr)
+        if output and output.strip()
     )
     if diagnostic:
         return diagnostic

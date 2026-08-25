@@ -1,5 +1,6 @@
 import asyncio
 import io
+import re
 import tarfile
 from contextlib import suppress
 from dataclasses import dataclass
@@ -15,7 +16,24 @@ import Main
 
 example : FormalizerProblem.Target :=
   FormalizerSubmission.solution
+
+#print axioms FormalizerSubmission.solution
 """
+
+_ALLOWED_AXIOMS = frozenset(
+    {
+        "Classical.choice",
+        "propext",
+        "Quot.sound",
+    }
+)
+_AXIOM_DEPENDENCIES_PATTERN = re.compile(
+    r"'FormalizerSubmission\.solution' depends on axioms:\s*\[(?P<axioms>.*?)\]",
+    re.DOTALL,
+)
+_NO_AXIOM_DEPENDENCIES_PATTERN = re.compile(
+    r"'FormalizerSubmission\.solution' does not depend on any axioms"
+)
 
 _STANDALONE_COMMAND = "cat > /workspace/Main.lean && exec lake env lean /workspace/Main.lean"
 
@@ -51,6 +69,17 @@ def _source_archive(problem_code: str, solution_code: str) -> bytes:
     return buffer.getvalue()
 
 
+def _reported_axioms(stdout: str) -> frozenset[str]:
+    match = _AXIOM_DEPENDENCIES_PATTERN.search(stdout)
+    if match is not None:
+        return frozenset(name.strip() for name in match.group("axioms").split(",") if name.strip())
+
+    if _NO_AXIOM_DEPENDENCIES_PATTERN.search(stdout) is not None:
+        return frozenset()
+
+    raise LeanInfrastructureError("Lean completed without a recognizable axiom report")
+
+
 @dataclass(frozen=True, slots=True)
 class LeanResult:
     stdout: str
@@ -58,10 +87,11 @@ class LeanResult:
     exit_code: int | None
     duration_s: float
     timed_out: bool = False
+    verification_error: str | None = None
 
     @property
     def accepted(self) -> bool:
-        return not self.timed_out and self.exit_code == 0
+        return not self.timed_out and self.exit_code == 0 and self.verification_error is None
 
 
 class LeanInfrastructureError(RuntimeError):
@@ -189,11 +219,20 @@ class DockerLeanChecker:
             diagnostic = stderr or stdout or f"Docker exited with status {exit_code}"
             raise LeanInfrastructureError(diagnostic)
 
+        verification_error = None
+        if self.problem_code is not None and exit_code == 0:
+            disallowed_axioms = sorted(_reported_axioms(stdout) - _ALLOWED_AXIOMS)
+            if disallowed_axioms:
+                verification_error = "Solution depends on disallowed axioms: " + ", ".join(
+                    disallowed_axioms
+                )
+
         return LeanResult(
             stdout=stdout,
             stderr=stderr,
             exit_code=exit_code,
             duration_s=duration_s,
+            verification_error=verification_error,
         )
 
     async def _container_exists(self, container_name: str) -> bool:

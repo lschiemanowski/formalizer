@@ -15,6 +15,16 @@ def Target : Prop := 1 + 1 = 2
 end FormalizerProblem
 """
 
+CLASSICAL_PROBLEM = """\
+import Mathlib.Logic.Basic
+
+namespace FormalizerProblem
+
+def Target : Prop := ∀ p : Prop, p ∨ ¬p
+
+end FormalizerProblem
+"""
+
 
 @pytest.mark.integration
 async def test_solution_can_add_imports_and_open_scopes() -> None:
@@ -65,6 +75,84 @@ end FormalizerSubmission
     assert not result.accepted
     assert result.exit_code != 0
     assert "FormalizerSubmission.solution" in result.stdout + result.stderr
+
+
+@pytest.mark.integration
+async def test_solution_using_sorry_is_rejected() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerProblem
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
+  sorry
+
+end FormalizerSubmission
+"""
+    )
+
+    assert result.exit_code == 0
+    assert not result.accepted
+    assert result.verification_error is not None
+    assert "sorryAx" in result.verification_error
+
+
+@pytest.mark.integration
+async def test_solution_using_submission_defined_axiom_is_rejected() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerProblem
+
+namespace FormalizerSubmission
+
+axiom cheat : FormalizerProblem.Target
+
+theorem solution : FormalizerProblem.Target :=
+  cheat
+
+end FormalizerSubmission
+"""
+    )
+
+    assert result.exit_code == 0
+    assert not result.accepted
+    assert result.verification_error is not None
+    assert "FormalizerSubmission.cheat" in result.verification_error
+
+
+@pytest.mark.integration
+async def test_solution_using_standard_classical_axioms_is_accepted() -> None:
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=CLASSICAL_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerProblem
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
+  intro p
+  exact Classical.em p
+
+end FormalizerSubmission
+"""
+    )
+
+    assert result.accepted
 
 
 @pytest.mark.integration

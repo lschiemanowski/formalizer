@@ -6,7 +6,6 @@ from typing import Self
 from uuid import UUID
 
 import pytest
-from formalizer.problem import FormalizationProblem
 from pydantic_ai import ModelSettings, UnexpectedModelBehavior, UsageLimitExceeded, UsageLimits
 from pydantic_ai.messages import (
     ModelMessage,
@@ -22,6 +21,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 import formalizer.run as run_module
 from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
 from formalizer.lean import LeanResult
+from formalizer.problem import FormalizationProblem
 from formalizer.run import RunManifest, run_formalizer
 from formalizer.search import SearchResult
 from formalizer.settings import RunSettings, SandboxSettings, Settings
@@ -377,6 +377,7 @@ async def test_model_request_limit_is_enforced_and_persisted(
             "exit_code": 0,
             "duration_s": 0.1,
             "timed_out": False,
+            "verification_error": None,
         }
     ]
     assert manifest["status"] == "failed"
