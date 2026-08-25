@@ -25,3 +25,5 @@ class TrialResult(BaseModel):
     problem_id: str
     run_id: UUID
     status: Literal["verified", "failed"]
+    error_type: str | None = None
+    error: str | None = None

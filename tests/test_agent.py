@@ -4,7 +4,7 @@ from pydantic_ai import ModelSettings
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
+from formalizer.agent import AgentDependencies, create_agent
 from formalizer.lean import LeanResult
 from formalizer.search import SearchHit, SearchResult
 
@@ -57,7 +57,8 @@ def final_submission_response(code: str) -> ModelResponse:
 
 
 async def test_verified_final_submission_ends_the_run() -> None:
-    checker = FakeLeanChecker([LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)])
+    accepted_result = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+    checker = FakeLeanChecker([accepted_result])
 
     async def submit_valid_code(
         messages: list[ModelMessage],
@@ -77,38 +78,33 @@ async def test_verified_final_submission_ends_the_run() -> None:
         ),
     )
 
-    assert result.output == VerifiedSubmission(code=VALID_CODE)
+    assert result.output.code == VALID_CODE
+    assert result.output.check == accepted_result
     assert checker.checked_code == [VALID_CODE]
 
 
-async def test_rejected_final_submission_is_retried() -> None:
-    checker = FakeLeanChecker(
-        [
-            LeanResult(
-                stdout="",
-                stderr="Main.lean:3:28: error: tactic 'rfl' failed",
-                exit_code=1,
-                duration_s=0.1,
-            ),
-            LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1),
-        ]
+async def test_rejected_final_submission_ends_the_run_without_retry() -> None:
+    rejected_result = LeanResult(
+        stdout="",
+        stderr="Main.lean:3:28: error: tactic 'rfl' failed",
+        exit_code=1,
+        duration_s=0.1,
     )
-    responses = iter(
-        [
-            final_submission_response(INVALID_CODE),
-            final_submission_response(VALID_CODE),
-        ]
-    )
+    checker = FakeLeanChecker([rejected_result])
+    model_calls = 0
 
-    async def submit_then_correct(
+    async def submit_invalid_code(
         messages: list[ModelMessage],
         agent_info: AgentInfo,
     ) -> ModelResponse:
+        nonlocal model_calls
+        model_calls += 1
+        assert model_calls == 1, "final_submission must not trigger another model request"
         assert messages
         assert [tool.name for tool in agent_info.output_tools] == ["final_submission"]
-        return next(responses)
+        return final_submission_response(INVALID_CODE)
 
-    agent = create_agent(FunctionModel(submit_then_correct))
+    agent = create_agent(FunctionModel(submit_invalid_code))
 
     result = await agent.run(
         "Prove that 1 + 1 = 2.",
@@ -118,8 +114,11 @@ async def test_rejected_final_submission_is_retried() -> None:
         ),
     )
 
-    assert result.output == VerifiedSubmission(code=VALID_CODE)
-    assert checker.checked_code == [INVALID_CODE, VALID_CODE]
+    assert model_calls == 1
+    assert result.output.code == INVALID_CODE
+    assert result.output.check == rejected_result
+    assert not result.output.check.accepted
+    assert checker.checked_code == [INVALID_CODE]
 
 
 async def test_lean_execute_returns_diagnostics_without_ending_the_run() -> None:
@@ -175,7 +174,8 @@ async def test_lean_execute_returns_diagnostics_without_ending_the_run() -> None
         ),
     )
 
-    assert result.output == VerifiedSubmission(code=VALID_CODE)
+    assert result.output.code == VALID_CODE
+    assert result.output.check.accepted
     assert checker.checked_code == [INVALID_CODE, VALID_CODE]
 
 
@@ -238,7 +238,8 @@ async def test_mathlib_search_returns_results_without_ending_the_run() -> None:
 
     assert search_backend.queries == ["Nat.add_comm"]
     assert checker.checked_code == [VALID_CODE]
-    assert result.output == VerifiedSubmission(code=VALID_CODE)
+    assert result.output.code == VALID_CODE
+    assert result.output.check.accepted
 
 
 async def test_agent_applies_configured_model_settings() -> None:
@@ -266,5 +267,6 @@ async def test_agent_applies_configured_model_settings() -> None:
         ),
     )
 
-    assert result.output == VerifiedSubmission(code=VALID_CODE)
+    assert result.output.code == VALID_CODE
+    assert result.output.check.accepted
     assert checker.checked_code == [VALID_CODE]

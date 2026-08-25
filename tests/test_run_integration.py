@@ -2,7 +2,6 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
-from formalizer.problem import FormalizationProblem
 from pydantic_ai.messages import (
     ModelMessage,
     ModelMessagesTypeAdapter,
@@ -12,8 +11,9 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
+from formalizer.agent import AgentDependencies, Submission, create_agent
 from formalizer.lean import DockerLeanChecker, LeanResult
+from formalizer.problem import FormalizationProblem
 from formalizer.run import RunManifest, run_formalizer
 from formalizer.search import DockerLoogleBackend, SearchResult
 from formalizer.settings import RunSettings, SandboxSettings
@@ -146,9 +146,12 @@ async def test_docker_backed_run_uses_tools_and_persists_verified_artifacts(
     assert model_calls == 3
     assert tool_calls == ["mathlib_search", "lean_execute", "final_submission"]
     assert stored_messages == ModelMessagesTypeAdapter.validate_json(result.all_messages_json())
-    assert result.output == VerifiedSubmission(code=VALID_CODE)
+    assert isinstance(result.output, Submission)
+    assert result.output.code == VALID_CODE
+    assert result.output.check.accepted
     assert manifest.run_id == run_id
     assert manifest.problem == PROBLEM
     assert manifest.status == "verified"
+    assert manifest.verification == result.output.check
     assert (run_dir / "problem.lean").read_text() == PROBLEM.source
     assert (run_dir / "final.lean").read_text() == VALID_CODE

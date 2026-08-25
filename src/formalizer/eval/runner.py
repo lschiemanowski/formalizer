@@ -10,9 +10,20 @@ async def evaluate_problem(
     settings: Settings,
 ) -> TrialResult:
     run_id = uuid4()
-    await formalize(problem.task, settings, run_id=run_id)
+
+    try:
+        run_result = await formalize(problem.task, settings, run_id=run_id)
+    except Exception as error:  # noqa: BLE001 - An evaluator records individual trial failures.
+        return TrialResult(
+            problem_id=problem.id,
+            run_id=run_id,
+            status="failed",
+            error_type=type(error).__name__,
+            error=str(error),
+        )
+
     return TrialResult(
         problem_id=problem.id,
         run_id=run_id,
-        status="verified",
+        status="verified" if run_result.output.check.accepted else "failed",
     )

@@ -8,8 +8,8 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent, AgentRunResult, capture_run_messages
 from pydantic_ai.messages import ModelMessagesTypeAdapter
 
-from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent, problem_prompt
-from formalizer.lean import DockerLeanChecker
+from formalizer.agent import AgentDependencies, Submission, create_agent, problem_prompt
+from formalizer.lean import DockerLeanChecker, LeanResult
 from formalizer.problem import FormalizationProblem
 from formalizer.search import DockerLoogleBackend
 from formalizer.settings import RunSettings, Settings
@@ -28,6 +28,7 @@ class RunManifest(BaseModel):
     finished_at: datetime
     error_type: str | None = None
     error: str | None = None
+    verification: LeanResult | None = None
 
 
 def _write_manifest(run_dir: Path, manifest: RunManifest) -> None:
@@ -40,11 +41,11 @@ def _write_manifest(run_dir: Path, manifest: RunManifest) -> None:
 async def run_formalizer(
     problem: FormalizationProblem,
     *,
-    agent: Agent[AgentDependencies, VerifiedSubmission],
+    agent: Agent[AgentDependencies, Submission],
     deps: AgentDependencies,
     settings: RunSettings,
     run_id: UUID | None = None,
-) -> AgentRunResult[VerifiedSubmission]:
+) -> AgentRunResult[Submission]:
     resolved_run_id = run_id or uuid4()
     run_id_text = str(resolved_run_id)
     run_dir = settings.runs_dir / run_id_text
@@ -76,12 +77,14 @@ async def run_formalizer(
             raise
 
     finished_at = datetime.now(UTC)
+    status: Literal["verified", "failed"] = "verified" if result.output.check.accepted else "failed"
     manifest = RunManifest(
         run_id=resolved_run_id,
         problem=problem,
-        status="verified",
+        status=status,
         started_at=started_at,
         finished_at=finished_at,
+        verification=result.output.check,
     )
 
     (run_dir / "messages.json").write_bytes(result.all_messages_json())
@@ -96,7 +99,7 @@ async def formalize(
     settings: Settings,
     *,
     run_id: UUID | None = None,
-) -> AgentRunResult[VerifiedSubmission]:
+) -> AgentRunResult[Submission]:
     lean_checker = DockerLeanChecker(
         settings.sandbox,
         problem_code=problem.source,

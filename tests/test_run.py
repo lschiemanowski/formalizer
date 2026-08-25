@@ -6,7 +6,7 @@ from typing import Self
 from uuid import UUID
 
 import pytest
-from pydantic_ai import ModelSettings, UnexpectedModelBehavior, UsageLimitExceeded, UsageLimits
+from pydantic_ai import ModelSettings, UsageLimitExceeded, UsageLimits
 from pydantic_ai.messages import (
     ModelMessage,
     ModelMessagesTypeAdapter,
@@ -19,7 +19,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 import formalizer.run as run_module
-from formalizer.agent import AgentDependencies, VerifiedSubmission, create_agent
+from formalizer.agent import AgentDependencies, create_agent
 from formalizer.lean import InvalidLeanProblem, LeanResult
 from formalizer.problem import FormalizationProblem
 from formalizer.run import RunManifest, run_formalizer
@@ -59,24 +59,26 @@ end FormalizerSubmission
 class AcceptingLeanChecker:
     def __init__(self) -> None:
         self.checked_code: list[str] = []
+        self.result = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
 
     async def check(self, code: str) -> LeanResult:
         self.checked_code.append(code)
-        return LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+        return self.result
 
 
 class RejectingLeanChecker:
     def __init__(self) -> None:
         self.checked_code: list[str] = []
-
-    async def check(self, code: str) -> LeanResult:
-        self.checked_code.append(code)
-        return LeanResult(
+        self.result = LeanResult(
             stdout="",
             stderr="Main.lean:4:2: error: type mismatch",
             exit_code=1,
             duration_s=0.1,
         )
+
+    async def check(self, code: str) -> LeanResult:
+        self.checked_code.append(code)
+        return self.result
 
 
 class ManagedLeanChecker(AcceptingLeanChecker):
@@ -157,18 +159,20 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
     )
 
     assert result.run_id == str(run_id)
-    assert result.output == VerifiedSubmission(code=VALID_CODE)
+    assert result.output.code == VALID_CODE
+    assert result.output.check == checker.result
     assert checker.checked_code == [VALID_CODE]
     assert stored_messages == result.all_messages()
     assert manifest.run_id == run_id
     assert manifest.problem == PROBLEM
     assert manifest.status == "verified"
+    assert manifest.verification == checker.result
     assert manifest.started_at <= manifest.finished_at
     assert (run_dir / "final.lean").read_text() == VALID_CODE
     assert (run_dir / "problem.lean").read_text() == PROBLEM.source
 
 
-async def test_failed_run_writes_diagnostics_without_final_lean(
+async def test_rejected_submission_writes_failed_run_artifacts(
     tmp_path: Path,
 ) -> None:
     run_id = UUID("e3b0a33a-4d88-48ce-a41b-35e018499bc8")
@@ -189,17 +193,16 @@ async def test_failed_run_writes_diagnostics_without_final_lean(
             ]
         )
 
-    with pytest.raises(UnexpectedModelBehavior):
-        await run_formalizer(
-            PROBLEM,
-            agent=create_agent(FunctionModel(submit_invalid_code)),
-            deps=AgentDependencies(
-                lean_checker=checker,
-                search_backend=UnexpectedSearchBackend(),
-            ),
-            settings=RunSettings(runs_dir=tmp_path),
-            run_id=run_id,
-        )
+    result = await run_formalizer(
+        PROBLEM,
+        agent=create_agent(FunctionModel(submit_invalid_code)),
+        deps=AgentDependencies(
+            lean_checker=checker,
+            search_backend=UnexpectedSearchBackend(),
+        ),
+        settings=RunSettings(runs_dir=tmp_path),
+        run_id=run_id,
+    )
 
     run_dir = tmp_path / str(run_id)
     manifest = json.loads((run_dir / "run.json").read_bytes())
@@ -219,20 +222,26 @@ async def test_failed_run_writes_diagnostics_without_final_lean(
         if isinstance(part, RetryPromptPart)
     ]
 
-    assert checker.checked_code
-    assert set(checker.checked_code) == {INVALID_CODE}
-    assert submission_calls
-    assert any(
-        isinstance(prompt.content, str) and "type mismatch" in prompt.content
-        for prompt in retry_prompts
-    )
+    assert result.output.code == INVALID_CODE
+    assert result.output.check == checker.result
+    assert checker.checked_code == [INVALID_CODE]
+    assert len(submission_calls) == 1
+    assert retry_prompts == []
     assert manifest["run_id"] == str(run_id)
     assert manifest["problem"] == PROBLEM.model_dump()
     assert manifest["status"] == "failed"
-    assert manifest["error_type"] == "UnexpectedModelBehavior"
-    assert manifest["error"]
+    assert manifest["error_type"] is None
+    assert manifest["error"] is None
+    assert manifest["verification"] == {
+        "stdout": "",
+        "stderr": "Main.lean:4:2: error: type mismatch",
+        "exit_code": 1,
+        "duration_s": 0.1,
+        "timed_out": False,
+        "verification_error": None,
+    }
     assert manifest["started_at"] <= manifest["finished_at"]
-    assert not (run_dir / "final.lean").exists()
+    assert (run_dir / "final.lean").read_text() == INVALID_CODE
     assert (run_dir / "problem.lean").read_text() == PROBLEM.source
 
 

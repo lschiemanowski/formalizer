@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 
 import pytest
-from formalizer.problem import FormalizationProblem
 from pydantic_ai import ModelSettings, UsageLimits, models
 
-from formalizer.agent import VerifiedSubmission
+from formalizer.agent import Submission
+from formalizer.problem import FormalizationProblem
 from formalizer.run import RunManifest, formalize
 from formalizer.settings import RunSettings, Settings
 
@@ -52,11 +52,13 @@ async def test_deepseek_v4_flash_produces_a_persisted_verified_submission(
     run_dir = tmp_path / result.run_id
     manifest = RunManifest.model_validate_json((run_dir / "run.json").read_bytes())
 
-    assert isinstance(result.output, VerifiedSubmission)
+    assert isinstance(result.output, Submission)
     assert result.output.code
+    assert result.output.check.accepted
     assert str(manifest.run_id) == result.run_id
     assert manifest.problem == _PROBLEM
     assert manifest.status == "verified"
+    assert manifest.verification == result.output.check
     assert (run_dir / "messages.json").stat().st_size > 0
     assert (run_dir / "problem.lean").read_text() == _PROBLEM.source
     assert (run_dir / "final.lean").read_text() == result.output.code

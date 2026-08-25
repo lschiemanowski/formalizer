@@ -6,6 +6,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from formalizer.lean import LeanResult
 from formalizer.problem import FormalizationProblem
 from formalizer.run import formalize
 from formalizer.settings import RunSettings, Settings
@@ -34,6 +35,19 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _rejection_diagnostic(result: LeanResult) -> str:
+    diagnostic = "\n".join(
+        output.strip()
+        for output in (result.verification_error, result.stdout, result.stderr)
+        if output and output.strip()
+    )
+    if diagnostic:
+        return diagnostic
+    if result.timed_out:
+        return "Lean checking timed out"
+    return f"Lean exited with status {result.exit_code} without diagnostics"
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -56,7 +70,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"formalizer: {type(error).__name__}: {error}", file=sys.stderr)
         return 1
 
-    code = result.output.code
+    submission = result.output
+    if not submission.check.accepted:
+        print(
+            f"formalizer: submission rejected\n{_rejection_diagnostic(submission.check)}",
+            file=sys.stderr,
+        )
+        return 1
+
+    code = submission.code
     sys.stdout.write(code)
     if not code.endswith("\n"):
         sys.stdout.write("\n")

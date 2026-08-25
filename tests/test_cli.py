@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from formalizer.problem import FormalizationProblem
 
 import formalizer.cli as cli_module
-from formalizer.agent import VerifiedSubmission
+from formalizer.agent import Submission
+from formalizer.lean import LeanResult
+from formalizer.problem import FormalizationProblem
 from formalizer.settings import Settings
 
 PROBLEM = """import Mathlib.Data.Nat.Basic
@@ -26,11 +27,27 @@ theorem solution : FormalizerProblem.Target := by
 
 end FormalizerSubmission
 """
+INVALID_CODE = """import FormalizerProblem
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by
+  exact 0
+
+end FormalizerSubmission
+"""
+ACCEPTED_CHECK = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+REJECTED_CHECK = LeanResult(
+    stdout="",
+    stderr="Main.lean:5:2: error: type mismatch",
+    exit_code=1,
+    duration_s=0.1,
+)
 
 
 @dataclass(frozen=True, slots=True)
 class FakeRunResult:
-    output: VerifiedSubmission
+    output: Submission
 
 
 @pytest.mark.parametrize(
@@ -60,7 +77,7 @@ def test_cli_translates_arguments_into_settings(
         settings: Settings,
     ) -> FakeRunResult:
         calls.append((problem, settings))
-        return FakeRunResult(output=VerifiedSubmission(code=VALID_CODE))
+        return FakeRunResult(output=Submission(code=VALID_CODE, check=ACCEPTED_CHECK))
 
     monkeypatch.setattr(cli_module, "formalize", record_formalize, raising=False)
 
@@ -96,7 +113,7 @@ def test_cli_prints_verified_lean_code_with_trailing_newline(
     expected_stdout: str,
 ) -> None:
     async def succeed(problem: FormalizationProblem, settings: Settings) -> FakeRunResult:
-        return FakeRunResult(output=VerifiedSubmission(code=code))
+        return FakeRunResult(output=Submission(code=code, check=ACCEPTED_CHECK))
 
     monkeypatch.setattr(cli_module, "formalize", succeed, raising=False)
 
@@ -106,6 +123,24 @@ def test_cli_prints_verified_lean_code_with_trailing_newline(
     assert exit_code == 0
     assert captured.out == expected_stdout
     assert captured.err == ""
+
+
+def test_cli_reports_rejected_submission_without_printing_it_as_verified(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def reject(problem: FormalizationProblem, settings: Settings) -> FakeRunResult:
+        return FakeRunResult(output=Submission(code=INVALID_CODE, check=REJECTED_CHECK))
+
+    monkeypatch.setattr(cli_module, "formalize", reject, raising=False)
+
+    exit_code = cli_module.main(["--model", "test:model", PROBLEM])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert captured.out == ""
+    assert "submission rejected" in captured.err.lower()
+    assert "type mismatch" in captured.err
 
 
 def test_cli_reports_runtime_failure(

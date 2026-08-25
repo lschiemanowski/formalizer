@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from pydantic_ai import Agent, ModelRetry, ModelSettings, RunContext, ToolOutput
+from pydantic_ai import Agent, ModelSettings, RunContext, ToolOutput
 from pydantic_ai.models import Model
 
 from formalizer.lean import LeanChecker, LeanResult
@@ -46,13 +46,14 @@ You have three tools:
   duration, and timeout status. Each call uses a fresh isolated environment, so files and state do
   not persist between calls.
 
-- final_submission is the only way to finish successfully. Pass the complete contents of the final
-  Main.lean. It performs the same three-module check again in a fresh environment. If the submission
-  is accepted, the run ends with that verified source. If it is rejected, the run continues and you
-  receive diagnostics so you can correct and resubmit it.
+- final_submission is the only way to submit your final answer and finish the run. Pass the
+  complete contents of the final Main.lean. It performs the same three-module check again in a
+  fresh environment. The run then ends, whether the submission is accepted or rejected. A rejected
+  final submission is recorded as a
+  failed trial, and you will not receive another turn to correct it.
 
-Use mathlib_search and lean_execute as often as needed. Call final_submission only when you believe
-the complete solution is ready.
+Use mathlib_search and lean_execute as often as needed, including to correct rejected candidates.
+Call final_submission only when you are ready to end the run with the submitted code.
 """
 
 
@@ -63,8 +64,9 @@ class AgentDependencies:
 
 
 @dataclass(frozen=True, slots=True)
-class VerifiedSubmission:
+class Submission:
     code: str
+    check: LeanResult
 
 
 def problem_prompt(problem: FormalizationProblem) -> str:
@@ -97,19 +99,6 @@ Here is FormalizerProblem.lean:
 """
 
 
-def _rejection_diagnostic(result: LeanResult) -> str:
-    diagnostic = "\n".join(
-        output.strip()
-        for output in (result.verification_error, result.stdout, result.stderr)
-        if output and output.strip()
-    )
-    if diagnostic:
-        return diagnostic
-    if result.timed_out:
-        return "Lean checking timed out"
-    return f"Lean exited with status {result.exit_code} without diagnostics"
-
-
 async def mathlib_search(
     ctx: RunContext[AgentDependencies],
     query: str,
@@ -129,30 +118,24 @@ async def lean_execute(
 async def final_submission(
     ctx: RunContext[AgentDependencies],
     code: str,
-) -> VerifiedSubmission:
-    """Submit the final Main.lean proving FormalizerProblem.Target."""
-    result = await ctx.deps.lean_checker.check(code)
-    if not result.accepted:
-        raise ModelRetry(
-            "Lean rejected the submitted Main.lean. Correct it and submit the complete file again.\n"
-            f"{_rejection_diagnostic(result)}"
-        )
-
-    return VerifiedSubmission(code=code)
+) -> Submission:
+    """End the run with this Main.lean and its verification result."""
+    check = await ctx.deps.lean_checker.check(code)
+    return Submission(code=code, check=check)
 
 
 def create_agent(
     model: Model | str,
     *,
     model_settings: ModelSettings | None = None,
-) -> Agent[AgentDependencies, VerifiedSubmission]:
-    return Agent[AgentDependencies, VerifiedSubmission](
+) -> Agent[AgentDependencies, Submission]:
+    return Agent[AgentDependencies, Submission](
         model,
         deps_type=AgentDependencies,
         instructions=_INSTRUCTIONS,
         model_settings=model_settings,
         tools=[mathlib_search, lean_execute],
-        output_type=ToolOutput[VerifiedSubmission](
+        output_type=ToolOutput[Submission](
             final_submission,
             name="final_submission",
         ),
