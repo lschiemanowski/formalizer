@@ -24,7 +24,7 @@ class SandboxSettings(BaseModel):
     workspace_mib: int = Field(default=256, ge=16)
     tmp_mib: int = Field(default=256, ge=16)
     lean_timeout_s: float = Field(default=30, gt=0)
-    search_timeout_s: float = Field(default=15, gt=0)
+    search_timeout_s: float = Field(default=30, gt=0)
 
 
 class RunSettings(BaseModel):

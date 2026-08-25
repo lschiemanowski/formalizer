@@ -206,6 +206,17 @@ async def test_loogle_invalid_query(
     assert result.suggestions
 
 
+@pytest.mark.integration
+async def test_expensive_query_returns_loogle_heartbeat_timeout_as_a_result(
+    backend: DockerLoogleBackend,
+) -> None:
+    async with backend as search:
+        result = await search.search("1 + 1 = 2")
+
+    assert result.error is not None
+    assert "maximum number of heartbeats" in result.error
+
+
 @pytest.mark.parametrize(
     "query",
     [

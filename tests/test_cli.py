@@ -65,12 +65,21 @@ def test_cli_translates_arguments_into_settings(
     assert settings.run.runs_dir == runs_dir
 
 
-def test_cli_prints_verified_lean_code(
+@pytest.mark.parametrize(
+    ("code", "expected_stdout"),
+    [
+        (VALID_CODE, VALID_CODE),
+        (VALID_CODE.rstrip("\n"), VALID_CODE),
+    ],
+)
+def test_cli_prints_verified_lean_code_with_trailing_newline(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
+    code: str,
+    expected_stdout: str,
 ) -> None:
     async def succeed(problem: str, settings: Settings) -> FakeRunResult:
-        return FakeRunResult(output=VerifiedSubmission(code=VALID_CODE))
+        return FakeRunResult(output=VerifiedSubmission(code=code))
 
     monkeypatch.setattr(cli_module, "formalize", succeed, raising=False)
 
@@ -78,7 +87,7 @@ def test_cli_prints_verified_lean_code(
 
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert captured.out == VALID_CODE
+    assert captured.out == expected_stdout
     assert captured.err == ""
 
 

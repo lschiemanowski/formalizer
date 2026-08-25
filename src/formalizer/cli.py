@@ -50,7 +50,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"formalizer: {type(error).__name__}: {error}", file=sys.stderr)
         return 1
 
-    sys.stdout.write(result.output.code)
+    code = result.output.code
+    sys.stdout.write(code)
+    if not code.endswith("\n"):
+        sys.stdout.write("\n")
     return 0
 
 
