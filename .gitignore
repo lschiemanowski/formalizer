@@ -209,6 +209,9 @@ tempCodeRunnerFile.py
 # Formalizer run artifacts
 runs/
 
+# Formalizer evaluation artifacts
+evaluations/
+
 # PyPI configuration file
 .pypirc
 
