@@ -1,6 +1,6 @@
-name: formurmel-basic-problems-v1
+name: basic-problems-v1
 cases:
-  - name: formurmel/problem-1
+  - name: basic-problems/problem-1
     inputs:
       source: |
         import Mathlib
@@ -23,12 +23,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_1
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_1.json
 
-  - name: formurmel/problem-2
+  - name: basic-problems/problem-2
     inputs:
       source: |
         import Mathlib
@@ -51,12 +50,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_2
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_2.json
 
-  - name: formurmel/problem-3
+  - name: basic-problems/problem-3
     inputs:
       source: |
         import Mathlib
@@ -79,12 +77,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_3
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_3.json
 
-  - name: formurmel/problem-4
+  - name: basic-problems/problem-4
     inputs:
       source: |
         import Mathlib
@@ -108,12 +105,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_4
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_4.json
 
-  - name: formurmel/problem-5
+  - name: basic-problems/problem-5
     inputs:
       source: |
         import Mathlib
@@ -139,12 +135,11 @@ cases:
       domain: functional-analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_5
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_5.json
 
-  - name: formurmel/problem-6
+  - name: basic-problems/problem-6
     inputs:
       source: |
         import Mathlib
@@ -166,12 +161,11 @@ cases:
       domain: combinatorics
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_6
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_6.json
 
-  - name: formurmel/problem-7
+  - name: basic-problems/problem-7
     inputs:
       source: |
         import Mathlib
@@ -194,12 +188,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_7
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_7.json
 
-  - name: formurmel/problem-8
+  - name: basic-problems/problem-8
     inputs:
       source: |
         import Mathlib
@@ -221,12 +214,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_8
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_8.json
 
-  - name: formurmel/problem-9
+  - name: basic-problems/problem-9
     inputs:
       source: |
         import Mathlib
@@ -248,12 +240,11 @@ cases:
       domain: commutative-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_9
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_9.json
 
-  - name: formurmel/problem-10
+  - name: basic-problems/problem-10
     inputs:
       source: |
         import Mathlib
@@ -281,12 +272,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_10
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_10.json
 
-  - name: formurmel/problem-11
+  - name: basic-problems/problem-11
     inputs:
       source: |
         import Mathlib
@@ -309,12 +299,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_11
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_11.json
 
-  - name: formurmel/problem-12
+  - name: basic-problems/problem-12
     inputs:
       source: |
         import Mathlib
@@ -338,12 +327,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_12
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_12.json
 
-  - name: formurmel/problem-13
+  - name: basic-problems/problem-13
     inputs:
       source: |
         import Mathlib
@@ -367,12 +355,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_13
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_13.json
 
-  - name: formurmel/problem-14
+  - name: basic-problems/problem-14
     inputs:
       source: |
         import Mathlib
@@ -397,12 +384,11 @@ cases:
       domain: functional-analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_14
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_14.json
 
-  - name: formurmel/problem-15
+  - name: basic-problems/problem-15
     inputs:
       source: |
         import Mathlib
@@ -424,12 +410,11 @@ cases:
       domain: combinatorics
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_15
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_15.json
 
-  - name: formurmel/problem-16
+  - name: basic-problems/problem-16
     inputs:
       source: |
         import Mathlib
@@ -451,12 +436,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_16
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_16.json
 
-  - name: formurmel/problem-17
+  - name: basic-problems/problem-17
     inputs:
       source: |
         import Mathlib
@@ -478,12 +462,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_17
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_17.json
 
-  - name: formurmel/problem-18
+  - name: basic-problems/problem-18
     inputs:
       source: |
         import Mathlib
@@ -508,12 +491,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_18
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_18.json
 
-  - name: formurmel/problem-19
+  - name: basic-problems/problem-19
     inputs:
       source: |
         import Mathlib
@@ -535,12 +517,11 @@ cases:
       domain: number-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_19
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_19.json
 
-  - name: formurmel/problem-20
+  - name: basic-problems/problem-20
     inputs:
       source: |
         import Mathlib
@@ -563,12 +544,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_20
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_20.json
 
-  - name: formurmel/problem-21
+  - name: basic-problems/problem-21
     inputs:
       source: |
         import Mathlib
@@ -590,12 +570,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_21
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_21.json
 
-  - name: formurmel/problem-22
+  - name: basic-problems/problem-22
     inputs:
       source: |
         import Mathlib
@@ -619,12 +598,11 @@ cases:
       domain: functional-analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_22
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_22.json
 
-  - name: formurmel/problem-23
+  - name: basic-problems/problem-23
     inputs:
       source: |
         import Mathlib
@@ -647,12 +625,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_23
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_23.json
 
-  - name: formurmel/problem-24
+  - name: basic-problems/problem-24
     inputs:
       source: |
         import Mathlib
@@ -674,12 +651,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_24
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_24.json
 
-  - name: formurmel/problem-25
+  - name: basic-problems/problem-25
     inputs:
       source: |
         import Mathlib
@@ -701,12 +677,11 @@ cases:
       domain: algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_25
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_25.json
 
-  - name: formurmel/problem-26
+  - name: basic-problems/problem-26
     inputs:
       source: |
         import Mathlib
@@ -730,12 +705,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_26
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_26.json
 
-  - name: formurmel/problem-27
+  - name: basic-problems/problem-27
     inputs:
       source: |
         import Mathlib
@@ -757,12 +731,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_27
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_27.json
 
-  - name: formurmel/problem-28
+  - name: basic-problems/problem-28
     inputs:
       source: |
         import Mathlib
@@ -784,12 +757,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_28
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_28.json
 
-  - name: formurmel/problem-29
+  - name: basic-problems/problem-29
     inputs:
       source: |
         import Mathlib
@@ -812,12 +784,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_29
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_29.json
 
-  - name: formurmel/problem-30
+  - name: basic-problems/problem-30
     inputs:
       source: |
         import Mathlib
@@ -839,12 +810,11 @@ cases:
       domain: algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_30
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_30.json
 
-  - name: formurmel/problem-31
+  - name: basic-problems/problem-31
     inputs:
       source: |
         import Mathlib
@@ -867,12 +837,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_31
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_31.json
 
-  - name: formurmel/problem-32
+  - name: basic-problems/problem-32
     inputs:
       source: |
         import Mathlib
@@ -896,12 +865,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_32
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_32.json
 
-  - name: formurmel/problem-33
+  - name: basic-problems/problem-33
     inputs:
       source: |
         import Mathlib
@@ -927,12 +895,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_33
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_33.json
 
-  - name: formurmel/problem-34
+  - name: basic-problems/problem-34
     inputs:
       source: |
         import Mathlib
@@ -954,12 +921,11 @@ cases:
       domain: logic
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_34
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_34.json
 
-  - name: formurmel/problem-35
+  - name: basic-problems/problem-35
     inputs:
       source: |
         import Mathlib
@@ -982,12 +948,11 @@ cases:
       domain: topology
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_35
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_35.json
 
-  - name: formurmel/problem-36
+  - name: basic-problems/problem-36
     inputs:
       source: |
         import Mathlib
@@ -1012,12 +977,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_36
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_36.json
 
-  - name: formurmel/problem-37
+  - name: basic-problems/problem-37
     inputs:
       source: |
         import Mathlib
@@ -1041,12 +1005,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_37
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_37.json
 
-  - name: formurmel/problem-38
+  - name: basic-problems/problem-38
     inputs:
       source: |
         import Mathlib
@@ -1071,12 +1034,11 @@ cases:
       domain: topology
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_38
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_38.json
 
-  - name: formurmel/problem-39
+  - name: basic-problems/problem-39
     inputs:
       source: |
         import Mathlib
@@ -1099,12 +1061,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_39
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_39.json
 
-  - name: formurmel/problem-40
+  - name: basic-problems/problem-40
     inputs:
       source: |
         import Mathlib
@@ -1126,12 +1087,11 @@ cases:
       domain: combinatorics
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_40
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_40.json
 
-  - name: formurmel/problem-41
+  - name: basic-problems/problem-41
     inputs:
       source: |
         import Mathlib
@@ -1154,12 +1114,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_41
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_41.json
 
-  - name: formurmel/problem-43
+  - name: basic-problems/problem-43
     inputs:
       source: |
         import Mathlib
@@ -1183,12 +1142,11 @@ cases:
       domain: algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_43
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_43.json
 
-  - name: formurmel/problem-44
+  - name: basic-problems/problem-44
     inputs:
       source: |
         import Mathlib
@@ -1211,12 +1169,11 @@ cases:
       domain: algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_44
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_44.json
 
-  - name: formurmel/problem-45
+  - name: basic-problems/problem-45
     inputs:
       source: |
         import Mathlib
@@ -1239,12 +1196,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_45
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_45.json
 
-  - name: formurmel/problem-46
+  - name: basic-problems/problem-46
     inputs:
       source: |
         import Mathlib
@@ -1267,12 +1223,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_46
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_46.json
 
-  - name: formurmel/problem-47
+  - name: basic-problems/problem-47
     inputs:
       source: |
         import Mathlib
@@ -1295,12 +1250,11 @@ cases:
       domain: topology
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_47
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_47.json
 
-  - name: formurmel/problem-48
+  - name: basic-problems/problem-48
     inputs:
       source: |
         import Mathlib
@@ -1323,12 +1277,11 @@ cases:
       domain: topology
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_48
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_48.json
 
-  - name: formurmel/problem-49
+  - name: basic-problems/problem-49
     inputs:
       source: |
         import Mathlib
@@ -1350,12 +1303,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_49
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_49.json
 
-  - name: formurmel/problem-50
+  - name: basic-problems/problem-50
     inputs:
       source: |
         import Mathlib
@@ -1378,12 +1330,11 @@ cases:
       domain: topology
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_50
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_50.json
 
-  - name: formurmel/problem-51
+  - name: basic-problems/problem-51
     inputs:
       source: |
         import Mathlib
@@ -1405,12 +1356,11 @@ cases:
       domain: topology
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_51
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_51.json
 
-  - name: formurmel/problem-52
+  - name: basic-problems/problem-52
     inputs:
       source: |
         import Mathlib
@@ -1433,12 +1383,11 @@ cases:
       domain: topology
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_52
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_52.json
 
-  - name: formurmel/problem-53
+  - name: basic-problems/problem-53
     inputs:
       source: |
         import Mathlib
@@ -1463,12 +1412,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_53
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_53.json
 
-  - name: formurmel/problem-54
+  - name: basic-problems/problem-54
     inputs:
       source: |
         import Mathlib
@@ -1491,12 +1439,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_54
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_54.json
 
-  - name: formurmel/problem-55
+  - name: basic-problems/problem-55
     inputs:
       source: |
         import Mathlib
@@ -1518,12 +1465,11 @@ cases:
       domain: analysis
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_55
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_55.json
 
-  - name: formurmel/problem-56
+  - name: basic-problems/problem-56
     inputs:
       source: |
         import Mathlib
@@ -1547,12 +1493,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_56
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_56.json
 
-  - name: formurmel/problem-57
+  - name: basic-problems/problem-57
     inputs:
       source: |
         import Mathlib
@@ -1575,12 +1520,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_57
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_57.json
 
-  - name: formurmel/problem-58
+  - name: basic-problems/problem-58
     inputs:
       source: |
         import Mathlib
@@ -1602,12 +1546,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_58
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_58.json
 
-  - name: formurmel/problem-59
+  - name: basic-problems/problem-59
     inputs:
       source: |
         import Mathlib
@@ -1631,12 +1574,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_59
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_59.json
 
-  - name: formurmel/problem-60
+  - name: basic-problems/problem-60
     inputs:
       source: |
         import Mathlib
@@ -1658,12 +1600,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_60
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_60.json
 
-  - name: formurmel/problem-61
+  - name: basic-problems/problem-61
     inputs:
       source: |
         import Mathlib
@@ -1686,12 +1627,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_61
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_61.json
 
-  - name: formurmel/problem-62
+  - name: basic-problems/problem-62
     inputs:
       source: |
         import Mathlib
@@ -1714,12 +1654,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_62
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_62.json
 
-  - name: formurmel/problem-63
+  - name: basic-problems/problem-63
     inputs:
       source: |
         import Mathlib
@@ -1741,12 +1680,11 @@ cases:
       domain: commutative-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_63
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_63.json
 
-  - name: formurmel/problem-64
+  - name: basic-problems/problem-64
     inputs:
       source: |
         import Mathlib
@@ -1768,12 +1706,11 @@ cases:
       domain: algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_64
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_64.json
 
-  - name: formurmel/problem-65
+  - name: basic-problems/problem-65
     inputs:
       source: |
         import Mathlib
@@ -1795,12 +1732,11 @@ cases:
       domain: commutative-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_65
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_65.json
 
-  - name: formurmel/problem-66
+  - name: basic-problems/problem-66
     inputs:
       source: |
         import Mathlib
@@ -1823,12 +1759,11 @@ cases:
       domain: group-theory
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_66
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_66.json
 
-  - name: formurmel/problem-67
+  - name: basic-problems/problem-67
     inputs:
       source: |
         import Mathlib
@@ -1850,12 +1785,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_67
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_67.json
 
-  - name: formurmel/problem-68
+  - name: basic-problems/problem-68
     inputs:
       source: |
         import Mathlib
@@ -1879,12 +1813,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_68
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_68.json
 
-  - name: formurmel/problem-69
+  - name: basic-problems/problem-69
     inputs:
       source: |
         import Mathlib
@@ -1906,12 +1839,11 @@ cases:
       domain: algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_69
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_69.json
 
-  - name: formurmel/problem-70
+  - name: basic-problems/problem-70
     inputs:
       source: |
         import Mathlib
@@ -1940,12 +1872,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_70
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_70.json
 
-  - name: formurmel/problem-71
+  - name: basic-problems/problem-71
     inputs:
       source: |
         import Mathlib
@@ -1969,12 +1900,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_71
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_71.json
 
-  - name: formurmel/problem-72
+  - name: basic-problems/problem-72
     inputs:
       source: |
         import Mathlib
@@ -1996,12 +1926,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_72
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_72.json
 
-  - name: formurmel/problem-73
+  - name: basic-problems/problem-73
     inputs:
       source: |
         import Mathlib
@@ -2023,12 +1952,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_73
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_73.json
 
-  - name: formurmel/problem-74
+  - name: basic-problems/problem-74
     inputs:
       source: |
         import Mathlib
@@ -2058,12 +1986,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_74
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_74.json
 
-  - name: formurmel/problem-75
+  - name: basic-problems/problem-75
     inputs:
       source: |
         import Mathlib
@@ -2088,12 +2015,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_75
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_75.json
 
-  - name: formurmel/problem-76
+  - name: basic-problems/problem-76
     inputs:
       source: |
         import Mathlib
@@ -2118,12 +2044,11 @@ cases:
       domain: linear-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_76
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_76.json
 
-  - name: formurmel/problem-77
+  - name: basic-problems/problem-77
     inputs:
       source: |
         import Mathlib
@@ -2145,7 +2070,6 @@ cases:
       domain: commutative-algebra
       provenance:
         origin: adapted
-        source: Formurmel basic problems dataset
+        source: Basic problems collection
         source_id: problem_77
         license: Apache-2.0
-        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_77.json

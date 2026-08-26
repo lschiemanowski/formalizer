@@ -12,10 +12,16 @@ from formalizer.settings import Settings
 class FakeDataset:
     def __init__(self) -> None:
         self.name = "baseline-v1"
+        self.cases = [FakeDatasetCase("logic/example")]
         self.evaluators: list[object] = []
 
     def add_evaluator(self, evaluator: object) -> None:
         self.evaluators.append(evaluator)
+
+
+class FakeDatasetCase:
+    def __init__(self, name: str) -> None:
+        self.name = name
 
 
 class FakeReport:
@@ -115,8 +121,153 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     assert metadata["dataset_name"] == "baseline-v1"
     assert metadata["repeat"] == 3
     assert metadata["dataset_sha256"]
+    assert metadata["selection"] == {
+        "splits": [],
+        "difficulties": [],
+        "case_names": [],
+        "selected_case_count": 1,
+    }
     assert persisted_reports == [(output_dir / "report.json", report)]
     assert report.printed
+
+
+def test_eval_cli_selects_cases_and_records_filters(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dataset_path = tmp_path / "basic-problems.yaml"
+    dataset_path.write_text("name: basic-problems-v1\ncases: []\n", encoding="utf-8")
+    output_dir = tmp_path / "experiment"
+    dataset = FakeDataset()
+    report = FakeReport()
+    selection_calls: list[tuple[set[str], set[str], set[str]]] = []
+    recorded_metadata: list[dict[str, object]] = []
+
+    def fake_select_formalizer_dataset(
+        received_dataset: FakeDataset,
+        *,
+        splits: set[str],
+        difficulties: set[str],
+        case_names: set[str],
+    ) -> FakeDataset:
+        assert received_dataset is dataset
+        selection_calls.append((splits, difficulties, case_names))
+        received_dataset.cases = [FakeDatasetCase("basic-problems/problem-8")]
+        return received_dataset
+
+    async def fake_evaluate_dataset(
+        received_dataset: FakeDataset,
+        settings: Settings,
+        *,
+        name: str,
+        repeat: int,
+        metadata: dict[str, object],
+    ) -> FakeReport:
+        assert received_dataset is dataset
+        recorded_metadata.append(metadata)
+        return report
+
+    monkeypatch.setattr(cli_module, "load_formalizer_dataset", lambda path: dataset)
+    monkeypatch.setattr(
+        cli_module,
+        "select_formalizer_dataset",
+        fake_select_formalizer_dataset,
+    )
+    monkeypatch.setattr(cli_module, "evaluate_dataset", fake_evaluate_dataset)
+    monkeypatch.setattr(cli_module, "write_evaluation_report", lambda path, value: None)
+
+    exit_code = cli_module.main(
+        [
+            "--dataset",
+            str(dataset_path),
+            "--model",
+            "test:model",
+            "--name",
+            "easy-validation",
+            "--output-dir",
+            str(output_dir),
+            "--split",
+            "validation",
+            "--difficulty",
+            "easy",
+            "--case",
+            "basic-problems/problem-8",
+        ]
+    )
+
+    assert exit_code == 0
+    assert selection_calls == [
+        (
+            {"validation"},
+            {"easy"},
+            {"basic-problems/problem-8"},
+        )
+    ]
+    assert recorded_metadata[0]["selection"] == {
+        "splits": ["validation"],
+        "difficulties": ["easy"],
+        "case_names": ["basic-problems/problem-8"],
+        "selected_case_count": 1,
+    }
+
+
+def test_eval_cli_rejects_an_empty_selection_before_creating_output(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    dataset_path = tmp_path / "dataset.yaml"
+    dataset_path.write_text(
+        """\
+name: easy-only-v1
+cases:
+  - name: logic/true
+    inputs:
+      source: |
+        namespace FormalizerProblem
+        def Target : Prop := True
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: validation
+      domain: logic
+      provenance:
+        origin: original
+        source: Test fixture
+        source_id: logic/true
+        license: Apache-2.0
+""",
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "experiment"
+    evaluation_called = False
+
+    async def unexpected_evaluation(*args: object, **kwargs: object) -> FakeReport:
+        nonlocal evaluation_called
+        evaluation_called = True
+        return FakeReport()
+
+    monkeypatch.setattr(cli_module, "evaluate_dataset", unexpected_evaluation)
+
+    exit_code = cli_module.main(
+        [
+            "--dataset",
+            str(dataset_path),
+            "--model",
+            "test:model",
+            "--name",
+            "hard-validation",
+            "--output-dir",
+            str(output_dir),
+            "--difficulty",
+            "hard",
+        ]
+    )
+
+    assert exit_code == 1
+    assert "No cases match" in capsys.readouterr().err
+    assert not evaluation_called
+    assert not output_dir.exists()
 
 
 @pytest.mark.parametrize(
@@ -271,6 +422,12 @@ def test_experiment_metadata_records_reproducibility_inputs(
         dataset_name="baseline-v1",
         settings=settings,
         repeat=3,
+        selection={
+            "splits": ["validation"],
+            "difficulties": ["easy"],
+            "case_names": [],
+            "selected_case_count": 3,
+        },
     )
 
     assert metadata["model_name"] == "test:model"
@@ -278,6 +435,12 @@ def test_experiment_metadata_records_reproducibility_inputs(
     assert metadata["dataset_path"] == str(dataset_path)
     assert metadata["dataset_sha256"] == sha256(dataset_bytes).hexdigest()
     assert metadata["repeat"] == 3
+    assert metadata["selection"] == {
+        "splits": ["validation"],
+        "difficulties": ["easy"],
+        "case_names": [],
+        "selected_case_count": 3,
+    }
     started_at = datetime.fromisoformat(str(metadata["started_at"]))
     assert started_at.tzinfo is not None
     assert metadata["formalizer_version"]

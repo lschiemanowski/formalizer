@@ -5,7 +5,13 @@ from pathlib import Path
 import pytest
 from pydantic_evals import Case
 
-from formalizer.eval import EvalOutput, ProblemMetadata, load_formalizer_dataset
+from formalizer.eval import (
+    EvalOutput,
+    InvalidFormalizerDataset,
+    ProblemMetadata,
+    load_formalizer_dataset,
+    select_formalizer_dataset,
+)
 from formalizer.lean import DockerLeanChecker, InvalidLeanProblem
 from formalizer.problem import FormalizationProblem
 from formalizer.settings import SandboxSettings
@@ -69,7 +75,7 @@ EXPECTED_SOURCE_IDS = {
 def test_basic_problems_dataset_has_curated_partition_and_provenance() -> None:
     dataset = load_formalizer_dataset(BASIC_PROBLEMS_DATASET_PATH)
 
-    assert dataset.name == "formurmel-basic-problems-v1"
+    assert dataset.name == "basic-problems-v1"
     assert len(dataset.cases) == 76
     assert len({case.name for case in dataset.cases}) == len(dataset.cases)
     assert len({case.inputs.source for case in dataset.cases}) == len(dataset.cases)
@@ -86,15 +92,64 @@ def test_basic_problems_dataset_has_curated_partition_and_provenance() -> None:
         source_ids_by_split[metadata.split].add(provenance.source_id)
         difficulty_counts[metadata.difficulty] += 1
 
-        assert case.name == f"formurmel/{provenance.source_id.replace('_', '-')}"
+        assert case.name == f"basic-problems/{provenance.source_id.replace('_', '-')}"
         assert provenance.origin == "adapted"
-        assert provenance.source == "Formurmel basic problems dataset"
+        assert provenance.source == "Basic problems collection"
         assert provenance.license == "Apache-2.0"
-        assert provenance.reference is not None
-        assert "602d13f97a98d4e30956fc4ee3eb6dadd99dedbf" in provenance.reference
+        assert provenance.reference is None
 
     assert source_ids_by_split == EXPECTED_SOURCE_IDS
     assert difficulty_counts == {"easy": 17, "medium": 59}
+
+
+def test_basic_problems_dataset_can_select_easy_validation_cases() -> None:
+    dataset = load_formalizer_dataset(BASIC_PROBLEMS_DATASET_PATH)
+
+    selected = select_formalizer_dataset(
+        dataset,
+        splits={"validation"},
+        difficulties={"easy"},
+    )
+
+    assert selected.name == dataset.name
+    assert [case.name for case in selected.cases] == [
+        "basic-problems/problem-8",
+        "basic-problems/problem-15",
+        "basic-problems/problem-64",
+    ]
+
+
+def test_dataset_selection_combines_metadata_and_explicit_case_filters() -> None:
+    dataset = load_formalizer_dataset(BASIC_PROBLEMS_DATASET_PATH)
+
+    selected = select_formalizer_dataset(
+        dataset,
+        splits={"validation"},
+        difficulties={"easy"},
+        case_names={"basic-problems/problem-8", "basic-problems/problem-15"},
+    )
+
+    assert [case.name for case in selected.cases] == [
+        "basic-problems/problem-8",
+        "basic-problems/problem-15",
+    ]
+
+
+def test_dataset_selection_rejects_unknown_case_names() -> None:
+    dataset = load_formalizer_dataset(BASIC_PROBLEMS_DATASET_PATH)
+
+    with pytest.raises(InvalidFormalizerDataset, match="basic-problems/problem-999"):
+        select_formalizer_dataset(
+            dataset,
+            case_names={"basic-problems/problem-999"},
+        )
+
+
+def test_dataset_selection_rejects_filters_matching_no_cases() -> None:
+    dataset = load_formalizer_dataset(BASIC_PROBLEMS_DATASET_PATH)
+
+    with pytest.raises(InvalidFormalizerDataset, match="No cases match"):
+        select_formalizer_dataset(dataset, difficulties={"hard"})
 
 
 def test_basic_problems_dataset_contains_targets_without_source_proofs() -> None:

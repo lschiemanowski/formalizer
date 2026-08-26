@@ -108,11 +108,10 @@ Core proof benchmarks should fit comfortably within the model context window. Lo
 context-compression experiments belong in a separate context-stress dataset so that context
 limitations do not confound baseline proof competence.
 
-## Formurmel basic problems v1
+## Basic problems v1
 
-`basic-problems-v1.yaml` adapts the Formurmel basic problems at commit
-`602d13f97a98d4e30956fc4ee3eb6dadd99dedbf`. It preserves the canonical disjoint partition as
-`training_minus` → `train`, `validation_plus` → `validation`, and `eval_plus` → `test`.
+`basic-problems-v1.yaml` adapts the project's basic problems collection. It preserves its curated,
+disjoint train, validation, and test partition.
 
 Only each problem's Lean theorem statement was adapted into `FormalizerProblem.Target`. The
 English statement and reference proof were deliberately not copied. Problem 42 was excluded
@@ -131,9 +130,22 @@ uv run pytest tests/eval/test_dataset.py
 uv run pytest -m integration tests/eval/test_dataset.py
 ```
 
-Validate the Formurmel dataset contract and all trusted Lean targets:
+Validate the basic problems dataset contract and all trusted Lean targets:
 
 ```bash
 uv run pytest tests/eval/test_basic_problems_dataset.py
 uv run pytest -m integration tests/eval/test_basic_problems_dataset.py
+```
+
+Select cases for an evaluation by split, difficulty, or exact case name. Repeating one option
+selects any matching value within that category; different categories are combined:
+
+```bash
+uv run formalizer-eval \
+  --dataset datasets/basic-problems-v1.yaml \
+  --model provider:model-name \
+  --name easy-validation-pilot \
+  --output-dir runs/evals/easy-validation-pilot \
+  --split validation \
+  --difficulty easy
 ```

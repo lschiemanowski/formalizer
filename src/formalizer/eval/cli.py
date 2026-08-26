@@ -11,7 +11,7 @@ from subprocess import CalledProcessError, run
 from pydantic_evals.reporting import EvaluationReport
 
 from formalizer.eval.artifacts import write_evaluation_report
-from formalizer.eval.datasets import load_formalizer_dataset
+from formalizer.eval.datasets import load_formalizer_dataset, select_formalizer_dataset
 from formalizer.eval.evaluators import LeanVerified
 from formalizer.eval.models import EvalOutput, ProblemMetadata
 from formalizer.eval.observability import configure_logfire
@@ -44,6 +44,24 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--name", required=True, type=_non_blank)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--repeat", type=_positive_int, default=1)
+    parser.add_argument(
+        "--split",
+        action="append",
+        choices=("train", "validation", "test"),
+        help="Select a dataset split; repeat to select more than one.",
+    )
+    parser.add_argument(
+        "--difficulty",
+        action="append",
+        choices=("easy", "medium", "hard"),
+        help="Select a difficulty; repeat to select more than one.",
+    )
+    parser.add_argument(
+        "--case",
+        action="append",
+        type=_non_blank,
+        help="Select an exact case name; repeat to select more than one.",
+    )
     parser.add_argument("--logfire", action="store_true")
     return parser
 
@@ -103,6 +121,7 @@ def _experiment_metadata(
     dataset_name: str,
     settings: Settings,
     repeat: int,
+    selection: dict[str, object],
 ) -> dict[str, object]:
     git_commit, git_dirty = _git_provenance()
     return {
@@ -111,6 +130,7 @@ def _experiment_metadata(
         "dataset_path": str(dataset_path),
         "dataset_sha256": sha256(dataset_path.read_bytes()).hexdigest(),
         "repeat": repeat,
+        "selection": selection,
         "started_at": datetime.now(UTC).isoformat(),
         "formalizer_version": version("formalizer"),
         "pydantic_evals_version": version("pydantic-evals"),
@@ -130,6 +150,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise FileExistsError(f"output directory already exists: {args.output_dir}")
 
         dataset = load_formalizer_dataset(args.dataset)
+        splits = set(args.split or ())
+        difficulties = set(args.difficulty or ())
+        case_names = set(args.case or ())
+        dataset = select_formalizer_dataset(
+            dataset,
+            splits=splits,
+            difficulties=difficulties,
+            case_names=case_names,
+        )
+        selection: dict[str, object] = {
+            "splits": sorted(splits),
+            "difficulties": sorted(difficulties),
+            "case_names": sorted(case_names),
+            "selected_case_count": len(dataset.cases),
+        }
         settings = Settings(
             model_name=args.model,
             run=RunSettings(runs_dir=args.output_dir / "runs"),
@@ -139,6 +174,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             dataset_name=dataset.name,
             settings=settings,
             repeat=args.repeat,
+            selection=selection,
         )
         args.output_dir.mkdir(parents=True)
 
