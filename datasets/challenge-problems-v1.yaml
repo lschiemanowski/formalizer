@@ -1,0 +1,76 @@
+name: challenge-problems-v1
+cases:
+  - name: challenge-problems/polya-enumeration
+    inputs:
+      source: |
+        import Mathlib.Data.Set.Card
+        import Mathlib.GroupTheory.GroupAction.Quotient
+
+        namespace FormalizerProblem
+
+        variable (G X C : Type*) [Group G] [MulAction G X]
+
+        instance coloringMulAction : MulAction G (X → C) where
+          smul g f := fun x => f (g⁻¹ • x)
+          one_smul f := by
+            funext x
+            change f ((1 : G)⁻¹ • x) = f x
+            rw [inv_one, one_smul]
+          mul_smul g h f := by
+            funext x
+            change f ((g * h)⁻¹ • x) = f (h⁻¹ • (g⁻¹ • x))
+            rw [mul_inv_rev, mul_smul]
+
+        noncomputable def fixedColoringCount [Fintype X] [Fintype C] (g : G) : ℕ :=
+          Nat.card {f : X → C // g • f = f}
+
+        noncomputable def coloringOrbitCount [Fintype X] [Fintype C] : ℕ :=
+          Nat.card (Quotient (MulAction.orbitRel G (X → C)))
+
+        def Target : Prop :=
+          ∀ (G X C : Type*) [Group G] [MulAction G X] [Fintype G] [Fintype X] [Fintype C],
+            coloringOrbitCount (G := G) (X := X) (C := C) * Fintype.card G =
+              ∑ g : G, fixedColoringCount (G := G) (X := X) (C := C) g
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: combinatorics
+      provenance:
+        origin: adapted
+        source: Challenge problems collection
+        source_id: problem_10
+        license: Apache-2.0
+
+  - name: challenge-problems/majorization
+    inputs:
+      source: |
+        import Mathlib.Analysis.Convex.Birkhoff
+
+        namespace FormalizerProblem
+
+        open Matrix Set
+
+        def InPermutationConvexHull {n : Type*} [Fintype n] [DecidableEq n]
+            (x y : n → ℝ) : Prop :=
+          x ∈ convexHull ℝ {z : n → ℝ | ∃ σ : Equiv.Perm n, z = fun i => y (σ i)}
+
+        def InDoublyStochasticImage {n : Type*} [Fintype n] [DecidableEq n]
+            (x y : n → ℝ) : Prop :=
+          ∃ M : Matrix n n ℝ, M ∈ doublyStochastic ℝ n ∧ M *ᵥ y = x
+
+        def Target : Prop :=
+          ∀ {n : Type*} [Fintype n] [DecidableEq n] (x y : n → ℝ),
+            InPermutationConvexHull x y ↔ InDoublyStochasticImage x y
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Challenge problems collection
+        source_id: problem_8
+        license: Apache-2.0

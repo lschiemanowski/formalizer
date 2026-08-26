@@ -123,6 +123,17 @@ a short routine Lean argument in the pinned environment. The other 59 are `mediu
 are provisional and should be revisited using model-independent proof inspection and aggregate
 pilot results, never a single model run.
 
+## Challenge problems v1
+
+`challenge-problems-v1.yaml` contains more substantial problems with compact trusted contexts.
+Cases are classified by the expected Formalizer agent task rather than by the source collection's
+label. The initial Pólya-enumeration and majorization cases are therefore `medium`: their proofs
+require meaningful Mathlib discovery, but Mathlib already provides the central orbit-counting and
+Birkhoff theorems.
+
+Reference proofs are used only as external curation oracles. The dataset contains the required
+definitions and `FormalizerProblem.Target`, but no solution lemmas or proof-specific scaffolding.
+
 Validate the current smoke dataset without making model requests:
 
 ```bash
@@ -135,6 +146,13 @@ Validate the basic problems dataset contract and all trusted Lean targets:
 ```bash
 uv run pytest tests/eval/test_basic_problems_dataset.py
 uv run pytest -m integration tests/eval/test_basic_problems_dataset.py
+```
+
+Validate the challenge problems dataset contract and all trusted Lean targets:
+
+```bash
+uv run pytest tests/eval/test_challenge_problems_dataset.py
+uv run pytest -m integration tests/eval/test_challenge_problems_dataset.py
 ```
 
 Select cases for an evaluation by split, difficulty, or exact case name. Repeating one option
