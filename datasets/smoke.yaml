@@ -1,0 +1,43 @@
+name: formalizer-smoke-v1
+cases:
+  - name: arithmetic/one-plus-one
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        def Target : Prop := 1 + 1 = 2
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+
+  - name: arithmetic/add-zero
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        def Target : Prop := ∀ n : Nat, n + 0 = n
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+
+  - name: logic/and-commutes
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        def Target : Prop := ∀ p q : Prop, p ∧ q → q ∧ p
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test

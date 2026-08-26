@@ -12,6 +12,7 @@ dependencies = [
 
 [project.scripts]
 formalizer = "formalizer.cli:main"
+formalizer-eval = "formalizer.eval.cli:main"
 
 [project.optional-dependencies]
 eval = [
