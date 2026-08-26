@@ -1,0 +1,2151 @@
+name: formurmel-basic-problems-v1
+cases:
+  - name: formurmel/problem-1
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [CommRing K] [AddCommGroup V] [Module K V]
+              (f : Module.End K V) (hf : IsNilpotent f),
+            IsUnit (1 - f)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_1
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_1.json
+
+  - name: formurmel/problem-2
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [CommSemiring K] [AddCommMonoid V] [Module K V]
+              (f : Module.End K V) (v : V),
+            (Submodule.span K (Set.range fun n : ℕ => (f ^ n) v)) ∈ f.invtSubmodule
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_2
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_2.json
+
+  - name: formurmel/problem-3
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [CommSemiring K] [AddCommMonoid V] [Module K V]
+              (f : Module.End K V),
+            (⨆ n : ℕ, LinearMap.ker (f ^ n)) ∈ f.invtSubmodule
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: test
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_3
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_3.json
+
+  - name: formurmel/problem-4
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [DivisionRing K] [AddCommGroup V] [Module K V]
+              (f : Module.End K V) (v : V) (n : ℕ)
+              (hn : (f ^ n) v ≠ 0) (hn1 : (f ^ (n + 1)) v = 0),
+            LinearIndependent K (fun i : Fin (n + 1) => (f ^ (i : ℕ)) v)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: test
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_4
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_4.json
+
+  - name: formurmel/problem-5
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [Fintype ι]
+              [CompleteSpace E]
+              (T : E →L[𝕜] E)
+              (b : OrthonormalBasis ι 𝕜 E)
+              (hb : ∀ i, ∃ μ : 𝕜, T (b i) = μ • b i),
+            IsStarNormal T
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: functional-analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_5
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_5.json
+
+  - name: formurmel/problem-6
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (n : ℕ),
+            (∑ k ∈ Finset.range (n + 1), k ^ 3) = ((n * (n + 1)) / 2) ^ 2
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: combinatorics
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_6
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_6.json
+
+  - name: formurmel/problem-7
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [Field R] [Invertible (2 : R)] (n : ℕ) (A : Matrix (Fin n) (Fin n) R),
+            ∃! p : Matrix (Fin n) (Fin n) R × Matrix (Fin n) (Fin n) R,
+                Matrix.IsSymm p.1 ∧ p.2.transpose = -p.2 ∧ A = p.1 + p.2
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_7
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_7.json
+
+  - name: formurmel/problem-8
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] (h : ∀ g : G, g ^ 2 = 1),
+            ∀ a b : G, a * b = b * a
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: validation
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_8
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_8.json
+
+  - name: formurmel/problem-9
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] [Nontrivial R],
+            IsField R ↔ ∀ I : Ideal R, I = ⊥ ∨ I = ⊤
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: commutative-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_9
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_9.json
+
+  - name: formurmel/problem-10
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {E : Type*} [SeminormedAddCommGroup E]
+              (a : ℕ → E)
+              (h :
+                Filter.limsup
+                    (fun n : ℕ =>
+                      ENNReal.ofReal ((‖a (n + 1)‖ : ℝ) ^ (1 / (n + 1 : ℝ))))
+                    Filter.atTop < 1),
+            Summable (fun n => ‖a n‖)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_10
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_10.json
+
+  - name: formurmel/problem-11
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [FiniteDimensional K V]
+              (f : Module.End K V) (hf : IsNilpotent f),
+            LinearMap.trace K V f = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_11
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_11.json
+
+  - name: formurmel/problem-12
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K : Type*} [Field K] {n : Type*} [Fintype n] [DecidableEq n]
+              (d : n → K)
+              (h : IsNilpotent (Matrix.diagonal d)),
+            Matrix.diagonal d = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: test
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_12
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_12.json
+
+  - name: formurmel/problem-13
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [CommSemiring K] [AddCommMonoid V] [Module K V]
+              (f g : Module.End K V)
+              (hfg : f * g = g * f),
+            LinearMap.ker f ∈ g.invtSubmodule ∧ LinearMap.range f ∈ g.invtSubmodule
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_13
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_13.json
+
+  - name: formurmel/problem-14
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
+              [CompleteSpace E]
+              (T : E →L[𝕜] E) (hT : IsStarNormal T) {v w : E} {lam mu : 𝕜}
+              (hv : T v = lam • v) (hw : T w = mu • w) (hlam_mu : lam ≠ mu),
+            inner 𝕜 v w = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: functional-analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_14
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_14.json
+
+  - name: formurmel/problem-15
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (n : ℕ),
+            (∑ k ∈ Finset.range (n + 1), Nat.choose n k) = 2 ^ n
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: validation
+      domain: combinatorics
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_15
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_15.json
+
+  - name: formurmel/problem-16
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] (hG : IsCyclic G) (H : Subgroup G),
+            IsCyclic H
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_16
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_16.json
+
+  - name: formurmel/problem-17
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] (H : Subgroup G) (hH : H.index = 2),
+            H.Normal
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_17
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_17.json
+
+  - name: formurmel/problem-18
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {E : Type*} [SeminormedAddCommGroup E]
+              (a : ℕ → E)
+              (hnz : ∃ N : ℕ, ∀ n : ℕ, n ≥ N → ‖a n‖ ≠ 0)
+              (h : limsup (fun n : ℕ => ‖a (n + 1)‖ / ‖a n‖) atTop < 1),
+            Summable (fun n => ‖a n‖)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_18
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_18.json
+
+  - name: formurmel/problem-19
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {p : ℕ} (hp : Nat.Prime p) (k : ℤ),
+            k ^ p ≡ k [ZMOD p]
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: number-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_19
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_19.json
+
+  - name: formurmel/problem-20
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (f : ℝ → ℝ) (hf : Continuous f)
+              (hq : ∀ q : ℚ, f (q : ℝ) = 0),
+            ∀ x : ℝ, f x = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_20
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_20.json
+
+  - name: formurmel/problem-21
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (u : ℕ → ℝ) (hu_mono : Monotone u) (hu_bdd : BddAbove (Set.range u)),
+            ∃ l : ℝ, Filter.Tendsto u Filter.atTop (nhds l)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_21
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_21.json
+
+  - name: formurmel/problem-22
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
+              [CompleteSpace E]
+              (T : E →L[𝕜] E),
+            IsUnit T ↔ IsUnit (star T)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: functional-analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_22
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_22.json
+
+  - name: formurmel/problem-23
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [CommSemiring K] [AddCommGroup V] [Module K V]
+              (p : Module.End K V) (hp : p ^ 2 = p),
+            IsCompl (LinearMap.ker p) (LinearMap.range p)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_23
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_23.json
+
+  - name: formurmel/problem-24
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] [Fintype G] (h : Nat.Prime (Fintype.card G)),
+            IsCyclic G
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_24
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_24.json
+
+  - name: formurmel/problem-25
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] {p : ℕ} (hp : Nat.Prime p) [CharP R p] (x y : R),
+            (x + y) ^ p = x ^ p + y ^ p
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_25
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_25.json
+
+  - name: formurmel/problem-26
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [FiniteDimensional K V]
+              (f : Module.End K V) (hf : f * f = 0),
+            LinearMap.range f ≤ LinearMap.ker f ∧
+                Module.finrank K (LinearMap.range f) ≤ Module.finrank K V / 2
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_26
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_26.json
+
+  - name: formurmel/problem-27
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K : Type*} [Field K] (A : Matrix (Fin 2) (Fin 2) K),
+            IsNilpotent A ↔ Matrix.trace A = 0 ∧ Matrix.det A = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_27
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_27.json
+
+  - name: formurmel/problem-28
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] (A : Matrix (Fin 2) (Fin 2) R),
+            A ^ 2 - (Matrix.trace A) • A + (Matrix.det A) • (1 : Matrix (Fin 2) (Fin 2) R) = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_28
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_28.json
+
+  - name: formurmel/problem-29
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (f : Real → Real)
+              (hf : ContinuousOn f (Set.Icc (0 : Real) 1)),
+            ∃ c ∈ Set.Icc (0 : Real) 1, f c = f (1 - c)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_29
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_29.json
+
+  - name: formurmel/problem-30
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {F : Type*} [Field F] [Finite F] {p : Nat} (hp : Nat.Prime p) [CharP F p],
+            Function.Bijective (fun x : F => x ^ p)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_30
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_30.json
+
+  - name: formurmel/problem-31
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] [Fintype G] [DecidableEq G] {p : Nat} (hp : Nat.Prime p)
+              (hpdiv : p ∣ Fintype.card G),
+            p ∣ Fintype.card {x : G // x ^ p = 1}
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_31
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_31.json
+
+  - name: formurmel/problem-32
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (a b : Nat → Real)
+              (hA : ∃ M, ∀ N, abs (Finset.sum (Finset.range N) (fun n => a n)) ≤ M)
+              (hb_mono : Monotone b) (hb_zero : Tendsto b atTop (nhds 0)),
+            Summable (fun n => a n * b n)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_32
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_32.json
+
+  - name: formurmel/problem-33
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (f_n : Nat → Real → Real) (f : Real → Real) (a b : Real)
+              (hmono : ∀ x ∈ Set.Icc a b, Monotone (fun n => f_n n x))
+              (hcont : ∀ n, ContinuousOn (f_n n) (Set.Icc a b))
+              (hcont_lim : ContinuousOn f (Set.Icc a b))
+              (hpt : ∀ x ∈ Set.Icc a b, Tendsto (fun n => f_n n x) atTop (nhds (f x))),
+            TendstoUniformlyOn (fun n x => f_n n x) f atTop (Set.Icc a b)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_33
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_33.json
+
+  - name: formurmel/problem-34
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {alpha : Type*} (f g : alpha → alpha) (h : f ∘ g = g ∘ f),
+            ∀ n : Nat, (Nat.iterate f n) ∘ g = g ∘ (Nat.iterate f n)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+      domain: logic
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_34
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_34.json
+
+  - name: formurmel/problem-35
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [MetricSpace X]
+              (h : Metric.ediam (Set.univ : Set X) = 0),
+            Subsingleton X
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_35
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_35.json
+
+  - name: formurmel/problem-36
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [PseudoMetricSpace X]
+              (u : Nat → X) (hu : CauchySeq u)
+              (phi : Nat → Nat) (hphi : StrictMono phi)
+              (l : X) (hsub : Tendsto (fun n => u (phi n)) atTop (nhds l)),
+            Tendsto u atTop (nhds l)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_36
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_36.json
+
+  - name: formurmel/problem-37
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y]
+              (f : X → Y) {K : NNReal} (hf : LipschitzWith K f)
+              (u : Nat → X) (hu : CauchySeq u),
+            CauchySeq (fun n => f (u n))
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_37
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_37.json
+
+  - name: formurmel/problem-38
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y] [T2Space Y]
+              (Q : Set X) (hQ : Dense Q) (f g : X → Y)
+              (hf : Continuous f) (hg : Continuous g)
+              (hfg : ∀ x ∈ Q, f x = g x),
+            f = g
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_38
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_38.json
+
+  - name: formurmel/problem-39
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {E : Type*} [NormedAddCommGroup E]
+              (a : Nat → E) (h : Summable (fun n => ‖a n‖)),
+            Tendsto a atTop (nhds 0)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: test
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_39
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_39.json
+
+  - name: formurmel/problem-40
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {S : Type*} [Fintype S] (f : S → S) (x : S),
+            ∃ m n : Nat, m < n ∧ Nat.iterate f m x = Nat.iterate f n x
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: test
+      domain: combinatorics
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_40
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_40.json
+
+  - name: formurmel/problem-41
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G]
+              (h : ∃! g : G, g ≠ 1 ∧ g ^ 2 = 1),
+            ∃ g : G, g ≠ 1 ∧ g ^ 2 = 1 ∧ ∀ x : G, x * g = g * x
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_41
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_41.json
+
+  - name: formurmel/problem-43
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K : Type*} [Field K] (p : Polynomial K) (s : Finset K)
+              (hs : ∀ x ∈ s, p.eval x = 0)
+              (hcard : p.natDegree < s.card),
+            p = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: test
+      domain: algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_43
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_43.json
+
+  - name: formurmel/problem-44
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K : Type*} [Field K] [CharZero K] (p : Polynomial K)
+              (hp : p.derivative = 0),
+            ∃ c : K, p = Polynomial.C c
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_44
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_44.json
+
+  - name: formurmel/problem-45
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+              (l : V →ₗ[K] K) (v : V) (hv : l v = 1),
+            IsCompl (LinearMap.ker l) (Submodule.span K {v})
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_45
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_45.json
+
+  - name: formurmel/problem-46
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [FiniteDimensional K V]
+              (f : Module.End K V),
+            ∃ n : Nat, IsCompl (LinearMap.range (f ^ n)) (LinearMap.ker (f ^ n))
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_46
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_46.json
+
+  - name: formurmel/problem-47
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [MetricSpace X] (K A : Set X)
+              (hK : IsCompact K) (hA : IsClosed A) (hKA : Disjoint K A),
+            ∃ delta > 0, ∀ x ∈ K, ∀ y ∈ A, delta ≤ dist x y
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_47
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_47.json
+
+  - name: formurmel/problem-48
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [TopologicalSpace X] [ConnectedSpace X]
+              (f : X → Int) (hf : Continuous f),
+            ∃ z : Int, ∀ x : X, f x = z
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: test
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_48
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/eval_plus/problem_48.json
+
+  - name: formurmel/problem-49
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (a : Nat → Real) (h : Summable (fun n => |a n - a (n + 1)|)),
+            ∃ l : Real, Tendsto a atTop (nhds l)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_49
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_49.json
+
+  - name: formurmel/problem-50
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [MetricSpace X] [CompactSpace X]
+              (f : X → X) (hf : Continuous f) (hfix : ∀ x : X, f x ≠ x),
+            ∃ eps > 0, ∀ x : X, eps ≤ dist x (f x)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_50
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_50.json
+
+  - name: formurmel/problem-51
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [MetricSpace X] [CompactSpace X],
+            TopologicalSpace.SeparableSpace X
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_51
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_51.json
+
+  - name: formurmel/problem-52
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [MetricSpace X] (K U : Set X)
+              (hK : IsCompact K) (hU : IsOpen U) (hKU : K ⊆ U) (hKne : K.Nonempty),
+            ∃ delta > 0, {x : X | Metric.infDist x K ≤ delta} ⊆ U
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_52
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_52.json
+
+  - name: formurmel/problem-53
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [PseudoMetricSpace X]
+              (f_n : Nat → X → Real) (f : X → Real) {L : NNReal}
+              (hL : ∀ n, LipschitzWith L (f_n n))
+              (hconv : TendstoUniformly (fun n x => f_n n x) f atTop),
+            LipschitzWith L f
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_53
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_53.json
+
+  - name: formurmel/problem-54
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (f : Real → Real) (hf : ContinuousOn f (Set.Icc (0 : Real) 1))
+              (hint : ∫ x in (0 : Real)..1, f x = 0),
+            ∃ x ∈ Set.Icc (0 : Real) 1, f x = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_54
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_54.json
+
+  - name: formurmel/problem-55
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (f : Real → Real) (a b : Real) (hf : ContDiffOn Real 1 f (Set.Icc a b)),
+            ∃ L : NNReal, LipschitzOnWith L f (Set.Icc a b)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_55
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_55.json
+
+  - name: formurmel/problem-56
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [CommSemiring K] [AddCommMonoid V] [Module K V]
+              (f g : Module.End K V) (hfg : f * g = g * f) (p : Polynomial K),
+            LinearMap.ker (Polynomial.aeval f p) ∈ g.invtSubmodule ∧
+                LinearMap.range (Polynomial.aeval f p) ∈ g.invtSubmodule
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_56
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_56.json
+
+  - name: formurmel/problem-57
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [FiniteDimensional K V]
+              (U : Submodule K V) (hU : Module.finrank K (V ⧸ U) = 1),
+            ∃ l : V →ₗ[K] K, LinearMap.ker l = U
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_57
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_57.json
+
+  - name: formurmel/problem-58
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V] [FiniteDimensional K V],
+            Nonempty (V ≃ₗ[K] Module.Dual K (Module.Dual K V))
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_58
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_58.json
+
+  - name: formurmel/problem-59
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+              (f : Module.End K V) (v : V) (mu : K) (p : Polynomial K)
+              (hv : f v = mu • v),
+            (Polynomial.aeval f p) v = (Polynomial.eval mu p) • v
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_59
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_59.json
+
+  - name: formurmel/problem-60
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G],
+            (commutator G).Characteristic
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_60
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_60.json
+
+  - name: formurmel/problem-61
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] [Fintype G] {p : Nat} (hp : Nat.Prime p)
+              (hcard : Fintype.card G = p ^ 2),
+            ∀ a b : G, a * b = b * a
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_61
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_61.json
+
+  - name: formurmel/problem-62
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] [Fintype G] {p k : Nat} (hp : Nat.Prime p)
+              (hk : k > 0) (hcard : Fintype.card G = p ^ k),
+            ∃ g : G, g ≠ 1 ∧ g ∈ Subgroup.center G
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_62
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_62.json
+
+  - name: formurmel/problem-63
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R],
+            ∃ I : Ideal R, ∀ x : R, x ∈ I ↔ IsNilpotent x
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: commutative-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_63
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_63.json
+
+  - name: formurmel/problem-64
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] [IsDomain R] [Finite R],
+            IsField R
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: validation
+      domain: algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_64
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_64.json
+
+  - name: formurmel/problem-65
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] (I : Ideal R),
+            I.IsRadical ↔ IsReduced (R ⧸ I)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: train
+      domain: commutative-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_65
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_65.json
+
+  - name: formurmel/problem-66
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G H : Type*} [Group G] [Fintype G] [Group H] [Fintype H]
+              (hG : Fintype.card G = 3) (hH : Fintype.card H = 3),
+            Nonempty (G ≃* H)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_66
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_66.json
+
+  - name: formurmel/problem-67
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] [Nontrivial R] {n : Nat} (hn : 2 ≤ n),
+            ∃ A B : Matrix.GeneralLinearGroup (Fin n) R, A * B ≠ B * A
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_67
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/validation_plus/problem_67.json
+
+  - name: formurmel/problem-68
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+              (U1 U2 : Submodule K V) (v1 v2 : V),
+            v1 +ᵥ (U1 : Set V) = v2 +ᵥ (U2 : Set V) ↔
+                U1 = U2 ∧ v1 - v2 ∈ U1
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_68
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_68.json
+
+  - name: formurmel/problem-69
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K : Type*} [Field K] [Finite K] (f : K → K),
+            ∃ p : Polynomial K, ∀ x : K, p.eval x = f x
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_69
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_69.json
+
+  - name: formurmel/problem-70
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+              {n : Nat} (v : Fin n → V),
+            let w : Fin n → V := fun i =>
+                if h : (i : ℕ) + 1 < n then
+                  v i - v ⟨(i : ℕ) + 1, h⟩
+                else
+                  v i
+            (LinearIndependent K v ∧ Submodule.span K (Set.range v) = ⊤) ↔
+              (LinearIndependent K w ∧ Submodule.span K (Set.range w) = ⊤)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_70
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_70.json
+
+  - name: formurmel/problem-71
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K : Type*} [Field K] {n : Nat}
+              (S : Submodule K (Matrix (Fin n) (Fin n) K))
+              (hS : (S : Set (Matrix (Fin n) (Fin n) K)) = {A | Matrix.IsSymm A}),
+            Module.finrank K S = n * (n + 1) / 2
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_71
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_71.json
+
+  - name: formurmel/problem-72
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∃ f : (Nat → Real) →ₗ[Real] (Nat → Real),
+                Function.Injective f ∧ ¬ Function.Surjective f
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_72
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_72.json
+
+  - name: formurmel/problem-73
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∃ f : (Nat → Real) →ₗ[Real] (Nat → Real),
+                Function.Surjective f ∧ ¬ Function.Injective f
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_73
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_73.json
+
+  - name: formurmel/problem-74
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K U V W : Type*} [Field K]
+              [AddCommGroup U] [Module K U]
+              [AddCommGroup V] [Module K V] [FiniteDimensional K V]
+              [AddCommGroup W] [Module K W]
+              (f : V →ₗ[K] W) (g : U →ₗ[K] V) (n : Nat)
+              (hn : Module.finrank K V = n),
+            Module.finrank K (LinearMap.range f) + Module.finrank K (LinearMap.range g) - n
+                  ≤ Module.finrank K (LinearMap.range (f.comp g)) ∧
+                Module.finrank K (LinearMap.range (f.comp g)) ≤
+                  min (Module.finrank K (LinearMap.range f)) (Module.finrank K (LinearMap.range g))
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_74
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_74.json
+
+  - name: formurmel/problem-75
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+              {n : Nat} (v : Fin n → V)
+              (hv : LinearIndependent K v ∧ Submodule.span K (Set.range v) = ⊤)
+              (f : V →ₗ[K] V),
+            Function.Injective f ↔ LinearIndependent K (fun i => f (v i))
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_75
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_75.json
+
+  - name: formurmel/problem-76
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
+              {n : Nat} (v : Fin n → V)
+              (hv : LinearIndependent K v ∧ Submodule.span K (Set.range v) = ⊤)
+              (f : V →ₗ[K] V),
+            Function.Surjective f ↔ Submodule.span K (Set.range (fun i => f (v i))) = ⊤
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_76
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_76.json
+
+  - name: formurmel/problem-77
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] (I : Ideal R),
+            Ideal.radical I = sInf { J : Ideal R | I ≤ J ∧ J.IsPrime }
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: train
+      domain: commutative-algebra
+      provenance:
+        origin: adapted
+        source: Formurmel basic problems dataset
+        source_id: problem_77
+        license: Apache-2.0
+        reference: https://github.com/lschiemanowski/formurmel/blob/602d13f97a98d4e30956fc4ee3eb6dadd99dedbf/datasets/basic_problems/lean_dataset_json/training_minus/problem_77.json

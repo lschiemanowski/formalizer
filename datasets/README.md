@@ -40,7 +40,10 @@ that defines exactly the proposition the model is expected to prove as
 
 ### Difficulty
 
-`difficulty` is a curator's provisional description of the proof task:
+`difficulty` is a curator's provisional description of the agent task: producing a Lean proof
+that Formalizer accepts. It is not a description of the statement's mathematical difficulty.
+Existing Mathlib support is part of the task and can make a mathematically substantial statement
+an easy case.
 
 - `easy` indicates a routine proof with a short, direct argument.
 - `medium` indicates a multi-step proof or meaningful Mathlib discovery.
@@ -105,9 +108,32 @@ Core proof benchmarks should fit comfortably within the model context window. Lo
 context-compression experiments belong in a separate context-stress dataset so that context
 limitations do not confound baseline proof competence.
 
+## Formurmel basic problems v1
+
+`basic-problems-v1.yaml` adapts the Formurmel basic problems at commit
+`602d13f97a98d4e30956fc4ee3eb6dadd99dedbf`. It preserves the canonical disjoint partition as
+`training_minus` → `train`, `validation_plus` → `validation`, and `eval_plus` → `test`.
+
+Only each problem's Lean theorem statement was adapted into `FormalizerProblem.Target`. The
+English statement and reference proof were deliberately not copied. Problem 42 was excluded
+because it duplicates held-out problem 17; retaining the test copy prevents training/test
+leakage. The resulting dataset contains 76 cases: 52 train, 12 validation, and 12 test.
+
+The initial difficulty review labels 17 cases `easy` because they have a direct Mathlib result or
+a short routine Lean argument in the pinned environment. The other 59 are `medium`. These labels
+are provisional and should be revisited using model-independent proof inspection and aggregate
+pilot results, never a single model run.
+
 Validate the current smoke dataset without making model requests:
 
 ```bash
 uv run pytest tests/eval/test_dataset.py
 uv run pytest -m integration tests/eval/test_dataset.py
+```
+
+Validate the Formurmel dataset contract and all trusted Lean targets:
+
+```bash
+uv run pytest tests/eval/test_basic_problems_dataset.py
+uv run pytest -m integration tests/eval/test_basic_problems_dataset.py
 ```
