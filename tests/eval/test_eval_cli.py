@@ -114,7 +114,11 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     received_dataset, settings, name, repeat, metadata = evaluation_calls[0]
     assert received_dataset is dataset
     assert settings.model_name == "test:model"
+    assert settings.model_settings == {"max_tokens": 8192}
     assert settings.run.runs_dir == output_dir / "runs"
+    assert settings.run.usage_limits.request_limit == 20
+    assert settings.run.usage_limits.output_tokens_limit == 30_000
+    assert settings.run.usage_limits.total_tokens_limit == 250_000
     assert name == "baseline-deepseek"
     assert repeat == 3
     assert metadata["model_name"] == "test:model"
@@ -127,8 +131,74 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
         "case_names": [],
         "selected_case_count": 1,
     }
+    assert metadata["budget"] == {
+        "max_tokens": 8192,
+        "request_limit": 20,
+        "output_tokens_limit": 30_000,
+        "total_tokens_limit": 250_000,
+    }
     assert persisted_reports == [(output_dir / "report.json", report)]
     assert report.printed
+
+
+def test_eval_cli_applies_and_records_budget_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dataset_path = tmp_path / "baseline.yaml"
+    dataset_path.write_text("name: baseline-v1\ncases: []\n", encoding="utf-8")
+    output_dir = tmp_path / "experiment"
+    dataset = FakeDataset()
+    received: list[tuple[Settings, dict[str, object]]] = []
+
+    async def fake_evaluate_dataset(
+        received_dataset: FakeDataset,
+        settings: Settings,
+        *,
+        name: str,
+        repeat: int,
+        metadata: dict[str, object],
+    ) -> FakeReport:
+        received.append((settings, metadata))
+        return FakeReport()
+
+    monkeypatch.setattr(cli_module, "load_formalizer_dataset", lambda path: dataset)
+    monkeypatch.setattr(cli_module, "evaluate_dataset", fake_evaluate_dataset)
+    monkeypatch.setattr(cli_module, "write_evaluation_report", lambda path, report: None)
+
+    exit_code = cli_module.main(
+        [
+            "--dataset",
+            str(dataset_path),
+            "--model",
+            "test:model",
+            "--name",
+            "bounded-run",
+            "--output-dir",
+            str(output_dir),
+            "--max-tokens",
+            "4096",
+            "--request-limit",
+            "12",
+            "--output-tokens-limit",
+            "20000",
+            "--total-tokens-limit",
+            "150000",
+        ]
+    )
+
+    assert exit_code == 0
+    settings, metadata = received[0]
+    assert settings.model_settings == {"max_tokens": 4096}
+    assert settings.run.usage_limits.request_limit == 12
+    assert settings.run.usage_limits.output_tokens_limit == 20_000
+    assert settings.run.usage_limits.total_tokens_limit == 150_000
+    assert metadata["budget"] == {
+        "max_tokens": 4096,
+        "request_limit": 12,
+        "output_tokens_limit": 20_000,
+        "total_tokens_limit": 150_000,
+    }
 
 
 def test_eval_cli_selects_cases_and_records_filters(
@@ -382,6 +452,35 @@ def test_eval_cli_rejects_nonpositive_repeat() -> None:
     assert exc_info.value.code == 2
 
 
+@pytest.mark.parametrize(
+    "option",
+    [
+        "--max-tokens",
+        "--request-limit",
+        "--output-tokens-limit",
+        "--total-tokens-limit",
+    ],
+)
+def test_eval_cli_rejects_nonpositive_budget(option: str) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        cli_module.main(
+            [
+                "--dataset",
+                "baseline.yaml",
+                "--model",
+                "test:model",
+                "--name",
+                "baseline-deepseek",
+                "--output-dir",
+                "experiment",
+                option,
+                "0",
+            ]
+        )
+
+    assert exc_info.value.code == 2
+
+
 def test_eval_cli_refuses_to_reuse_an_experiment_directory(
     capsys: pytest.CaptureFixture[str],
     tmp_path: Path,
@@ -450,3 +549,9 @@ def test_experiment_metadata_records_reproducibility_inputs(
     assert metadata["formalizer_git_dirty"] is True
     assert metadata["docker_image"] == settings.sandbox.docker_image
     assert metadata["docker_image_id"] == "sha256:def456"
+    assert metadata["budget"] == {
+        "max_tokens": None,
+        "request_limit": 50,
+        "output_tokens_limit": None,
+        "total_tokens_limit": None,
+    }

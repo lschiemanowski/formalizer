@@ -8,6 +8,7 @@ from importlib.metadata import version
 from pathlib import Path
 from subprocess import CalledProcessError, run
 
+from pydantic_ai import ModelSettings, UsageLimits
 from pydantic_evals.reporting import EvaluationReport
 
 from formalizer.eval.artifacts import write_evaluation_report
@@ -18,6 +19,11 @@ from formalizer.eval.observability import configure_logfire
 from formalizer.eval.runner import evaluate_dataset
 from formalizer.problem import FormalizationProblem
 from formalizer.settings import RunSettings, Settings
+
+DEFAULT_MAX_TOKENS = 8_192
+DEFAULT_REQUEST_LIMIT = 20
+DEFAULT_OUTPUT_TOKENS_LIMIT = 30_000
+DEFAULT_TOTAL_TOKENS_LIMIT = 250_000
 
 
 def _positive_int(value: str) -> int:
@@ -44,6 +50,30 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--name", required=True, type=_non_blank)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--repeat", type=_positive_int, default=1)
+    parser.add_argument(
+        "--max-tokens",
+        type=_positive_int,
+        default=DEFAULT_MAX_TOKENS,
+        help="Maximum output tokens for each model request.",
+    )
+    parser.add_argument(
+        "--request-limit",
+        type=_positive_int,
+        default=DEFAULT_REQUEST_LIMIT,
+        help="Maximum number of model requests per case.",
+    )
+    parser.add_argument(
+        "--output-tokens-limit",
+        type=_positive_int,
+        default=DEFAULT_OUTPUT_TOKENS_LIMIT,
+        help="Maximum cumulative output tokens per case.",
+    )
+    parser.add_argument(
+        "--total-tokens-limit",
+        type=_positive_int,
+        default=DEFAULT_TOTAL_TOKENS_LIMIT,
+        help="Maximum cumulative input and output tokens per case.",
+    )
     parser.add_argument(
         "--split",
         action="append",
@@ -131,6 +161,12 @@ def _experiment_metadata(
         "dataset_sha256": sha256(dataset_path.read_bytes()).hexdigest(),
         "repeat": repeat,
         "selection": selection,
+        "budget": {
+            "max_tokens": settings.model_settings.get("max_tokens"),
+            "request_limit": settings.run.usage_limits.request_limit,
+            "output_tokens_limit": settings.run.usage_limits.output_tokens_limit,
+            "total_tokens_limit": settings.run.usage_limits.total_tokens_limit,
+        },
         "started_at": datetime.now(UTC).isoformat(),
         "formalizer_version": version("formalizer"),
         "pydantic_evals_version": version("pydantic-evals"),
@@ -167,7 +203,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
         settings = Settings(
             model_name=args.model,
-            run=RunSettings(runs_dir=args.output_dir / "runs"),
+            model_settings=ModelSettings(max_tokens=args.max_tokens),
+            run=RunSettings(
+                runs_dir=args.output_dir / "runs",
+                usage_limits=UsageLimits(
+                    request_limit=args.request_limit,
+                    output_tokens_limit=args.output_tokens_limit,
+                    total_tokens_limit=args.total_tokens_limit,
+                ),
+            ),
         )
         metadata = _experiment_metadata(
             dataset_path=args.dataset,

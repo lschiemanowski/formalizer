@@ -167,3 +167,23 @@ uv run formalizer-eval \
   --split validation \
   --difficulty easy
 ```
+
+Evaluation runs use explicit per-case budgets so model failures and costs remain comparable. The
+defaults are 8,192 output tokens per model request, 20 model requests, 30,000 cumulative output
+tokens, and 250,000 cumulative input-plus-output tokens. Override them when an experiment requires
+a different predeclared budget:
+
+```bash
+uv run formalizer-eval \
+  --dataset datasets/challenge-problems-v1.yaml \
+  --model provider:model-name \
+  --name bounded-challenge-pilot \
+  --output-dir runs/evals/bounded-challenge-pilot \
+  --case challenge-problems/polya-enumeration \
+  --max-tokens 4096 \
+  --request-limit 12 \
+  --output-tokens-limit 20000 \
+  --total-tokens-limit 150000
+```
+
+The resolved budget is recorded in the evaluation report metadata.
