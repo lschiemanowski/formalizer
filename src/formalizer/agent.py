@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from typing import Annotated
 
+from pydantic import Field
 from pydantic_ai import Agent, ModelSettings, RunContext, ToolOutput
 from pydantic_ai.models import Model
 
@@ -38,7 +40,8 @@ FormalizerProblem.Target. Merely compiling some other theorem or example does no
 You have three tools:
 
 - mathlib_search searches Mathlib for relevant declarations and returns matching names, types,
-  modules, and documentation.
+  modules, and documentation. It returns at most 10 results by default; you may request between 1
+  and 100 results when a broader or narrower result set would help.
 
 - lean_execute checks a candidate solution without ending the run. Pass the complete contents of
   Main.lean, not a fragment or patch. It compiles FormalizerProblem.lean, your Main.lean, and the
@@ -102,9 +105,10 @@ Here is FormalizerProblem.lean:
 async def mathlib_search(
     ctx: RunContext[AgentDependencies],
     query: str,
+    max_results: Annotated[int, Field(ge=1, le=100)] = 10,
 ) -> SearchResult:
     """Search Mathlib declarations without ending the run."""
-    return await ctx.deps.search_backend.search(query)
+    return await ctx.deps.search_backend.search(query, max_results=max_results)
 
 
 async def lean_execute(

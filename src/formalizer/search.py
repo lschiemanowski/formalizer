@@ -1,7 +1,7 @@
 import asyncio
 import json
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from time import monotonic
 from types import TracebackType
 from typing import Protocol, Self
@@ -10,6 +10,7 @@ from uuid import uuid4
 from formalizer.settings import SandboxSettings
 
 _DOCKER_CLEANUP_TIMEOUT_S = 10.0
+_LOOGLE_STREAM_LIMIT_BYTES = 1024 * 1024
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,7 +121,7 @@ class SearchResult:
 
 
 class SearchBackend(Protocol):
-    async def search(self, query: str) -> SearchResult: ...
+    async def search(self, query: str, *, max_results: int = 10) -> SearchResult: ...
 
 
 class SearchInfrastructureError(RuntimeError):
@@ -198,6 +199,8 @@ class DockerLoogleBackend:
             "/opt/loogle/.lake/build/bin/loogle",
             "--interactive",
             "--json",
+            "--max-results",
+            str(self._settings.search_max_results),
             "--module",
             "Mathlib",
             "--index-mode",
@@ -212,6 +215,7 @@ class DockerLoogleBackend:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                limit=_LOOGLE_STREAM_LIMIT_BYTES,
             )
         except OSError as error:
             raise SearchInfrastructureError("Could not start Docker") from error
@@ -335,8 +339,10 @@ class DockerLoogleBackend:
                 f"Could not remove Loogle container {container_name}: {diagnostic}"
             )
 
-    async def search(self, query: str) -> SearchResult:
+    async def search(self, query: str, *, max_results: int = 10) -> SearchResult:
         query = self._validate_query(query)
+        if not 1 <= max_results <= 100:
+            raise ValueError("max_results must be between 1 and 100")
 
         async with self._lock:
             process = self._process
@@ -381,6 +387,11 @@ class DockerLoogleBackend:
             except (BrokenPipeError, ConnectionResetError) as error:
                 await asyncio.shield(self._retire())
                 raise SearchInfrastructureError("Lost connection to Loogle") from error
+            except ValueError as error:
+                await asyncio.shield(self._retire())
+                raise SearchInfrastructureError(
+                    "Loogle response exceeded the stream limit"
+                ) from error
 
             if not response_line:
                 await asyncio.shield(self._retire())
@@ -389,11 +400,12 @@ class DockerLoogleBackend:
             duration_s = monotonic() - started_at
 
             try:
-                return SearchResult.from_loogle_json(
+                result = SearchResult.from_loogle_json(
                     query=query,
                     response_line=response_line,
                     duration_s=duration_s,
                 )
+                return replace(result, hits=result.hits[:max_results])
             except SearchInfrastructureError:
                 await asyncio.shield(self._retire())
                 raise

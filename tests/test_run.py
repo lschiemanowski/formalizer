@@ -91,8 +91,8 @@ class ManagedLeanChecker(AcceptingLeanChecker):
 
 
 class UnexpectedSearchBackend:
-    async def search(self, query: str) -> SearchResult:
-        raise AssertionError(f"Search was not expected: {query}")
+    async def search(self, query: str, *, max_results: int = 10) -> SearchResult:
+        raise AssertionError(f"Search was not expected: {query}, max_results={max_results}")
 
 
 class ManagedSearchBackend(UnexpectedSearchBackend):

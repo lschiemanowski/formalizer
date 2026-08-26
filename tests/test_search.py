@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import pytest
 
@@ -49,6 +50,27 @@ async def docker_container_command(*args: str) -> None:
 
     if process.returncode != 0:
         raise RuntimeError(stderr.decode(errors="replace"))
+
+
+async def docker_container_config_command(container_id: str) -> list[str]:
+    process = await asyncio.create_subprocess_exec(
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .Config.Cmd}}",
+        container_id,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await process.communicate()
+
+    if process.returncode != 0:
+        raise RuntimeError(stderr.decode(errors="replace"))
+
+    command = json.loads(stdout)
+    assert isinstance(command, list)
+    assert all(isinstance(argument, str) for argument in command)
+    return command
 
 
 async def remove_containers(container_ids: set[str]) -> None:
@@ -181,6 +203,37 @@ async def test_persistent_loogle_handles_repeated_queries(
 
     assert any(hit.name == "Nat.add_comm" for hit in addition.hits)
     assert any(hit.name == "Nat.mul_comm" for hit in multiplication.hits)
+
+
+@pytest.mark.integration
+async def test_loogle_process_uses_configured_result_ceiling() -> None:
+    containers_before = await formalizer_loogle_container_ids()
+    backend = DockerLoogleBackend(SandboxSettings(search_max_results=37))
+
+    try:
+        await backend.start()
+        new_containers = (await formalizer_loogle_container_ids()) - containers_before
+        assert len(new_containers) == 1
+
+        command = await docker_container_config_command(next(iter(new_containers)))
+        option_index = command.index("--max-results")
+        assert command[option_index + 1] == "37"
+    finally:
+        await backend.close()
+
+
+@pytest.mark.integration
+async def test_broad_loogle_search_respects_backend_and_per_query_limits() -> None:
+    backend = DockerLoogleBackend(SandboxSettings(search_max_results=100))
+
+    async with backend:
+        maximum = await backend.search('"nilpotent"', max_results=100)
+        one = await backend.search('"nilpotent"', max_results=1)
+
+    assert maximum.total_count > 100
+    assert len(maximum.hits) == 100
+    assert one.total_count == maximum.total_count
+    assert len(one.hits) == 1
 
 
 @pytest.mark.integration

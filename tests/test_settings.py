@@ -23,6 +23,8 @@ def test_model_name_must_not_be_blank(model_name: str) -> None:
         {"sandbox": {"tmp_mib": 15}},
         {"sandbox": {"lean_timeout_s": 0}},
         {"sandbox": {"search_timeout_s": 0}},
+        {"sandbox": {"search_max_results": 0}},
+        {"sandbox": {"search_max_results": 101}},
         {"run": {"run_timeout_s": 0}},
     ],
 )
@@ -60,3 +62,9 @@ def test_settings_cannot_change_during_a_run() -> None:
 
     with pytest.raises(ValidationError):
         settings.sandbox.cpus = 4  # ty: ignore[invalid-assignment]
+
+
+def test_loogle_backend_result_ceiling_defaults_to_one_hundred() -> None:
+    settings = Settings(model_name="test-model")
+
+    assert settings.sandbox.search_max_results == 100

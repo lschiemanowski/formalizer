@@ -1,7 +1,14 @@
 from collections.abc import Iterator
 
+import pytest
 from pydantic_ai import ModelSettings
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart, ToolReturnPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+    RetryPromptPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from formalizer.agent import AgentDependencies, create_agent
@@ -31,17 +38,17 @@ class FakeLeanChecker:
 
 
 class UnexpectedSearchBackend:
-    async def search(self, query: str) -> SearchResult:
-        raise AssertionError(f"Search was not expected: {query}")
+    async def search(self, query: str, *, max_results: int = 10) -> SearchResult:
+        raise AssertionError(f"Search was not expected: {query}, max_results={max_results}")
 
 
 class FakeSearchBackend:
     def __init__(self, results: list[SearchResult]) -> None:
         self._results: Iterator[SearchResult] = iter(results)
-        self.queries: list[str] = []
+        self.queries: list[tuple[str, int]] = []
 
-    async def search(self, query: str) -> SearchResult:
-        self.queries.append(query)
+    async def search(self, query: str, *, max_results: int = 10) -> SearchResult:
+        self.queries.append((query, max_results))
         return next(self._results)
 
 
@@ -179,7 +186,17 @@ async def test_lean_execute_returns_diagnostics_without_ending_the_run() -> None
     assert checker.checked_code == [INVALID_CODE, VALID_CODE]
 
 
-async def test_mathlib_search_returns_results_without_ending_the_run() -> None:
+@pytest.mark.parametrize(
+    ("tool_args", "expected_max_results"),
+    [
+        ({"query": "Nat.add_comm"}, 10),
+        ({"query": "Nat.add_comm", "max_results": 100}, 100),
+    ],
+)
+async def test_mathlib_search_returns_results_without_ending_the_run(
+    tool_args: dict[str, object],
+    expected_max_results: int,
+) -> None:
     expected_search_result = SearchResult(
         query="Nat.add_comm",
         hits=(
@@ -205,14 +222,20 @@ async def test_mathlib_search_returns_results_without_ending_the_run() -> None:
         nonlocal model_calls
         model_calls += 1
 
-        assert "mathlib_search" in [tool.name for tool in agent_info.function_tools]
+        search_tool = next(
+            tool for tool in agent_info.function_tools if tool.name == "mathlib_search"
+        )
+        max_results_schema = search_tool.parameters_json_schema["properties"]["max_results"]
+        assert max_results_schema["default"] == 10
+        assert max_results_schema["minimum"] == 1
+        assert max_results_schema["maximum"] == 100
 
         if model_calls == 1:
             return ModelResponse(
                 parts=[
                     ToolCallPart(
                         tool_name="mathlib_search",
-                        args={"query": "Nat.add_comm"},
+                        args=tool_args,
                     )
                 ]
             )
@@ -236,8 +259,57 @@ async def test_mathlib_search_returns_results_without_ending_the_run() -> None:
         ),
     )
 
-    assert search_backend.queries == ["Nat.add_comm"]
+    assert search_backend.queries == [("Nat.add_comm", expected_max_results)]
     assert checker.checked_code == [VALID_CODE]
+    assert result.output.code == VALID_CODE
+    assert result.output.check.accepted
+
+
+@pytest.mark.parametrize("max_results", [0, 101])
+async def test_mathlib_search_rejects_result_limits_outside_agent_bounds(
+    max_results: int,
+) -> None:
+    checker = FakeLeanChecker([LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)])
+    model_calls = 0
+
+    async def invalid_search_then_submit(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        nonlocal model_calls
+        model_calls += 1
+
+        if model_calls == 1:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="mathlib_search",
+                        args={"query": "Nat.add_comm", "max_results": max_results},
+                    )
+                ]
+            )
+
+        retry_prompts = [
+            part
+            for message in messages
+            for part in message.parts
+            if isinstance(part, RetryPromptPart) and part.tool_name == "mathlib_search"
+        ]
+        assert retry_prompts
+        assert agent_info.function_tools
+        return final_submission_response(VALID_CODE)
+
+    agent = create_agent(FunctionModel(invalid_search_then_submit))
+
+    result = await agent.run(
+        "Prove that addition of natural numbers is commutative.",
+        deps=AgentDependencies(
+            lean_checker=checker,
+            search_backend=UnexpectedSearchBackend(),
+        ),
+    )
+
+    assert model_calls == 2
     assert result.output.code == VALID_CODE
     assert result.output.check.accepted
 
