@@ -1,15 +1,26 @@
+import json
 from pathlib import Path
 
 from pydantic_evals import Case
 
 from formalizer.agent import Submission
-from formalizer.eval import EvalOutput, FormalizerDataset, LeanVerified, ProblemMetadata
-from formalizer.eval.artifacts import read_evaluation_report, write_evaluation_report
+from formalizer.eval import (
+    EvalOutput,
+    FormalizerDataset,
+    LeanVerified,
+    ProblemMetadata,
+    ProblemProvenance,
+)
+from formalizer.eval.artifacts import (
+    FormalizerEvaluationReport,
+    read_evaluation_report,
+    write_evaluation_report,
+)
 from formalizer.lean import LeanResult
 from formalizer.problem import FormalizationProblem
 
 
-async def test_evaluation_report_round_trips_as_json(tmp_path: Path) -> None:
+async def successful_report() -> FormalizerEvaluationReport:
     problem = FormalizationProblem(
         source="""\
 namespace FormalizerProblem
@@ -30,7 +41,17 @@ end FormalizerProblem
             Case(
                 name="logic/true",
                 inputs=problem,
-                metadata=ProblemMetadata(difficulty="easy", split="test"),
+                metadata=ProblemMetadata(
+                    difficulty="easy",
+                    split="test",
+                    domain="logic",
+                    provenance=ProblemProvenance(
+                        origin="original",
+                        source="Test fixture",
+                        source_id="logic/true",
+                        license="Apache-2.0",
+                    ),
+                ),
             )
         ],
         evaluators=[LeanVerified()],
@@ -48,6 +69,11 @@ end FormalizerProblem
     )
     report.trace_id = "0123456789abcdef0123456789abcdef"
     report.span_id = "0123456789abcdef"
+    return report
+
+
+async def test_evaluation_report_round_trips_as_json(tmp_path: Path) -> None:
+    report = await successful_report()
     report_path = tmp_path / "report.json"
 
     write_evaluation_report(report_path, report)
@@ -55,6 +81,27 @@ end FormalizerProblem
 
     assert loaded == report
     assert report_path.read_bytes().endswith(b"\n")
+
+
+async def test_legacy_evaluation_report_remains_readable(tmp_path: Path) -> None:
+    report = await successful_report()
+    report_path = tmp_path / "report.json"
+    write_evaluation_report(report_path, report)
+    payload = json.loads(report_path.read_bytes())
+    for case in payload["cases"]:
+        del case["metadata"]["domain"]
+        del case["metadata"]["provenance"]
+    report_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = read_evaluation_report(report_path)
+
+    assert loaded.name == report.name
+    metadata = loaded.cases[0].metadata
+    assert metadata is not None
+    assert metadata.model_dump() == {
+        "difficulty": "easy",
+        "split": "test",
+    }
 
 
 async def test_evaluation_report_with_task_failure_round_trips(tmp_path: Path) -> None:

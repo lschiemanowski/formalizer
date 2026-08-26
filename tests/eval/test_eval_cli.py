@@ -78,7 +78,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     def fake_write_evaluation_report(path: Path, received_report: FakeReport) -> None:
         persisted_reports.append((path, received_report))
 
-    monkeypatch.setattr(cli_module, "FormalizerDataset", FakeDatasetType)
+    monkeypatch.setattr(cli_module, "load_formalizer_dataset", FakeDatasetType.from_file)
     monkeypatch.setattr(cli_module, "configure_logfire", fake_configure_logfire)
     monkeypatch.setattr(cli_module, "evaluate_dataset", fake_evaluate_dataset)
     monkeypatch.setattr(cli_module, "write_evaluation_report", fake_write_evaluation_report)
@@ -146,7 +146,7 @@ def test_eval_cli_returns_failure_for_execution_failures(
     async def fake_evaluate_dataset(*args: object, **kwargs: object) -> FakeReport:
         return report
 
-    monkeypatch.setattr(cli_module, "FormalizerDataset", FakeDatasetType)
+    monkeypatch.setattr(cli_module, "load_formalizer_dataset", FakeDatasetType.from_file)
     monkeypatch.setattr(cli_module, "evaluate_dataset", fake_evaluate_dataset)
     monkeypatch.setattr(
         cli_module,
@@ -189,7 +189,7 @@ def test_eval_cli_handles_interruption(
     async def interrupt(*args: object, **kwargs: object) -> FakeReport:
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(cli_module, "FormalizerDataset", FakeDatasetType)
+    monkeypatch.setattr(cli_module, "load_formalizer_dataset", FakeDatasetType.from_file)
     monkeypatch.setattr(cli_module, "evaluate_dataset", interrupt)
 
     exit_code = cli_module.main(

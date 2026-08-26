@@ -13,6 +13,12 @@ cases:
     metadata:
       difficulty: easy
       split: test
+      domain: arithmetic
+      provenance:
+        origin: original
+        source: Formalizer smoke dataset
+        source_id: arithmetic/one-plus-one
+        license: Apache-2.0
 
   - name: arithmetic/add-zero
     inputs:
@@ -27,6 +33,12 @@ cases:
     metadata:
       difficulty: easy
       split: test
+      domain: arithmetic
+      provenance:
+        origin: original
+        source: Formalizer smoke dataset
+        source_id: arithmetic/add-zero
+        license: Apache-2.0
 
   - name: logic/and-commutes
     inputs:
@@ -41,3 +53,9 @@ cases:
     metadata:
       difficulty: easy
       split: test
+      domain: logic
+      provenance:
+        origin: original
+        source: Formalizer smoke dataset
+        source_id: logic/and-commutes
+        license: Apache-2.0

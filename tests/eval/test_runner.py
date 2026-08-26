@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Literal
 from uuid import UUID
 
 import pytest
@@ -8,7 +9,13 @@ from pydantic_evals import Case, Dataset
 
 import formalizer.eval.runner as runner_module
 from formalizer.agent import Submission
-from formalizer.eval import EvalOutput, LeanVerified, ProblemMetadata, evaluate_dataset
+from formalizer.eval import (
+    EvalOutput,
+    LeanVerified,
+    ProblemMetadata,
+    ProblemProvenance,
+    evaluate_dataset,
+)
 from formalizer.lean import LeanResult
 from formalizer.problem import FormalizationProblem
 from formalizer.settings import Settings
@@ -34,6 +41,20 @@ def Target : Prop := 1 + 1 = 2
 end FormalizerProblem
 """
 )
+
+
+def problem_metadata(difficulty: Literal["easy", "medium", "hard"]) -> ProblemMetadata:
+    return ProblemMetadata(
+        difficulty=difficulty,
+        split="test",
+        domain="test fixture",
+        provenance=ProblemProvenance(
+            origin="original",
+            source="Test fixture",
+            source_id=f"{difficulty}-case",
+            license="Apache-2.0",
+        ),
+    )
 
 
 async def test_dataset_reports_verified_rejected_and_failed_formalizer_cases(
@@ -77,17 +98,17 @@ async def test_dataset_reports_verified_rejected_and_failed_formalizer_cases(
             Case(
                 name="accepted",
                 inputs=ACCEPTED_PROBLEM,
-                metadata=ProblemMetadata(difficulty="easy", split="test"),
+                metadata=problem_metadata("easy"),
             ),
             Case(
                 name="rejected",
                 inputs=REJECTED_PROBLEM,
-                metadata=ProblemMetadata(difficulty="medium", split="test"),
+                metadata=problem_metadata("medium"),
             ),
             Case(
                 name="failed",
                 inputs=FAILING_PROBLEM,
-                metadata=ProblemMetadata(difficulty="hard", split="test"),
+                metadata=problem_metadata("hard"),
             ),
         ],
         evaluators=[LeanVerified()],
@@ -112,10 +133,7 @@ async def test_dataset_reports_verified_rejected_and_failed_formalizer_cases(
         submission=Submission(code="rejected", check=rejected_check),
     )
     assert cases["rejected"].assertions["LeanVerified"].value is False
-    assert cases["rejected"].metadata == ProblemMetadata(
-        difficulty="medium",
-        split="test",
-    )
+    assert cases["rejected"].metadata == problem_metadata("medium")
     assert len(report.failures) == 1
     assert report.failures[0].name == "failed"
     assert report.failures[0].error_message == "RuntimeError: provider request failed"
@@ -136,6 +154,12 @@ cases:
     metadata:
       difficulty: easy
       split: test
+      domain: arithmetic
+      provenance:
+        origin: original
+        source: Test fixture
+        source_id: arithmetic/one-plus-one
+        license: Apache-2.0
 """,
         encoding="utf-8",
     )
@@ -149,6 +173,13 @@ cases:
     assert dataset.cases[0].metadata == ProblemMetadata(
         difficulty="easy",
         split="test",
+        domain="arithmetic",
+        provenance=ProblemProvenance(
+            origin="original",
+            source="Test fixture",
+            source_id="arithmetic/one-plus-one",
+            license="Apache-2.0",
+        ),
     )
 
 

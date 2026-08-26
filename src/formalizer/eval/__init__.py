@@ -1,10 +1,12 @@
 from formalizer.eval.artifacts import (
     FormalizerEvaluationReport,
+    LegacyFormalizerEvaluationReport,
     read_evaluation_report,
     write_evaluation_report,
 )
+from formalizer.eval.datasets import InvalidFormalizerDataset, load_formalizer_dataset
 from formalizer.eval.evaluators import LeanVerified
-from formalizer.eval.models import EvalOutput, ProblemMetadata
+from formalizer.eval.models import EvalOutput, ProblemMetadata, ProblemProvenance
 from formalizer.eval.observability import configure_logfire
 from formalizer.eval.runner import (
     FormalizerDataset,
@@ -18,11 +20,15 @@ __all__ = [
     "FormalizerDataset",
     "FormalizerEvaluationReport",
     "FormalizerTask",
+    "InvalidFormalizerDataset",
     "LeanVerified",
+    "LegacyFormalizerEvaluationReport",
     "ProblemMetadata",
+    "ProblemProvenance",
     "configure_logfire",
     "create_formalizer_task",
     "evaluate_dataset",
+    "load_formalizer_dataset",
     "read_evaluation_report",
     "write_evaluation_report",
 ]

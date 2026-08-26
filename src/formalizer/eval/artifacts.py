@@ -1,6 +1,7 @@
 from pathlib import Path
+from typing import Literal
 
-from pydantic import TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 from pydantic_evals.reporting import EvaluationReport
 
 from formalizer.eval.models import EvalOutput, ProblemMetadata
@@ -12,7 +13,27 @@ type FormalizerEvaluationReport = EvaluationReport[
     ProblemMetadata,
 ]
 
+
+class LegacyProblemMetadata(BaseModel):
+    """Problem metadata written before the dataset provenance contract."""
+
+    model_config = ConfigDict(
+        frozen=True,
+        extra="forbid",
+    )
+
+    difficulty: Literal["easy", "medium", "hard"]
+    split: Literal["train", "validation", "test"]
+
+
+type LegacyFormalizerEvaluationReport = EvaluationReport[
+    FormalizationProblem,
+    EvalOutput,
+    LegacyProblemMetadata,
+]
+
 _REPORT_ADAPTER = TypeAdapter(FormalizerEvaluationReport)
+_LEGACY_REPORT_ADAPTER = TypeAdapter(LegacyFormalizerEvaluationReport)
 
 
 def write_evaluation_report(path: Path, report: FormalizerEvaluationReport) -> None:
@@ -21,5 +42,14 @@ def write_evaluation_report(path: Path, report: FormalizerEvaluationReport) -> N
     temporary_path.replace(path)
 
 
-def read_evaluation_report(path: Path) -> FormalizerEvaluationReport:
-    return _REPORT_ADAPTER.validate_json(path.read_bytes())
+def read_evaluation_report(
+    path: Path,
+) -> FormalizerEvaluationReport | LegacyFormalizerEvaluationReport:
+    data = path.read_bytes()
+    try:
+        return _REPORT_ADAPTER.validate_json(data)
+    except ValidationError as current_error:
+        try:
+            return _LEGACY_REPORT_ADAPTER.validate_json(data)
+        except ValidationError:
+            raise current_error from None

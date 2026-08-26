@@ -11,10 +11,11 @@ from subprocess import CalledProcessError, run
 from pydantic_evals.reporting import EvaluationReport
 
 from formalizer.eval.artifacts import write_evaluation_report
+from formalizer.eval.datasets import load_formalizer_dataset
 from formalizer.eval.evaluators import LeanVerified
 from formalizer.eval.models import EvalOutput, ProblemMetadata
 from formalizer.eval.observability import configure_logfire
-from formalizer.eval.runner import FormalizerDataset, evaluate_dataset
+from formalizer.eval.runner import evaluate_dataset
 from formalizer.problem import FormalizationProblem
 from formalizer.settings import RunSettings, Settings
 
@@ -128,7 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.output_dir.exists():
             raise FileExistsError(f"output directory already exists: {args.output_dir}")
 
-        dataset = FormalizerDataset.from_file(args.dataset)
+        dataset = load_formalizer_dataset(args.dataset)
         settings = Settings(
             model_name=args.model,
             run=RunSettings(runs_dir=args.output_dir / "runs"),
