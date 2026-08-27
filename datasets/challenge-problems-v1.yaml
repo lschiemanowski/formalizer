@@ -74,3 +74,34 @@ cases:
         source: Challenge problems collection
         source_id: problem_8
         license: Apache-2.0
+
+  - name: challenge-problems/sylvester-criterion
+    inputs:
+      source: |
+        import Mathlib.Analysis.Matrix.PosDef
+
+        namespace FormalizerProblem
+
+        open Matrix
+
+        def leadingPrincipalSubmatrix {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
+            (k : ℕ) (hk : k ≤ n) : Matrix (Fin k) (Fin k) ℝ :=
+          A.submatrix (Fin.castLE hk) (Fin.castLE hk)
+
+        def LeadingPrincipalMinorsPositive {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) : Prop :=
+          ∀ (k : ℕ) (hk : k ≤ n), k ≠ 0 → 0 < (leadingPrincipalSubmatrix A k hk).det
+
+        def Target : Prop :=
+          ∀ {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ),
+            A.IsSymm → (A.PosDef ↔ LeadingPrincipalMinorsPositive A)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: hard
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Challenge problems collection
+        source_id: problem_16
+        license: Apache-2.0

@@ -127,9 +127,10 @@ pilot results, never a single model run.
 
 `challenge-problems-v1.yaml` contains more substantial problems with compact trusted contexts.
 Cases are classified by the expected Formalizer agent task rather than by the source collection's
-label. The initial Pólya-enumeration and majorization cases are therefore `medium`: their proofs
-require meaningful Mathlib discovery, but Mathlib already provides the central orbit-counting and
-Birkhoff theorems.
+label. The Pólya-enumeration and majorization cases are therefore `medium`: their proofs require
+meaningful Mathlib discovery, but Mathlib already provides the central orbit-counting and Birkhoff
+theorems. The Sylvester-criterion case is `hard`: its proof requires assembling a substantial
+matrix argument around leading principal submatrices and Schur complements.
 
 Reference proofs are used only as external curation oracles. The dataset contains the required
 definitions and `FormalizerProblem.Target`, but no solution lemmas or proof-specific scaffolding.

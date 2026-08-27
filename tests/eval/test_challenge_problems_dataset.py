@@ -18,11 +18,13 @@ def test_challenge_problems_dataset_contains_curated_cases() -> None:
     assert [case.name for case in dataset.cases] == [
         "challenge-problems/polya-enumeration",
         "challenge-problems/majorization",
+        "challenge-problems/sylvester-criterion",
     ]
 
     expected_metadata = [
         ("medium", "validation", "combinatorics", "problem_10"),
         ("medium", "validation", "linear-algebra", "problem_8"),
+        ("hard", "validation", "linear-algebra", "problem_16"),
     ]
     for case, expected in zip(dataset.cases, expected_metadata, strict=True):
         assert case.metadata is not None
@@ -60,6 +62,13 @@ def test_challenge_problem_contains_only_trusted_context_and_target() -> None:
     assert "InDoublyStochasticImage" in majorization_source
     assert "mulVecRightLinear" not in majorization_source
     assert "image_convexHull" not in majorization_source
+
+    sylvester_source = dataset.cases[2].inputs.source
+    assert "leadingPrincipalSubmatrix" in sylvester_source
+    assert "LeadingPrincipalMinorsPositive" in sylvester_source
+    assert "SchurComplement" not in sylvester_source
+    assert "leadingPrincipalMinorsPositive_of_posDef" not in sylvester_source
+    assert "posDef_of_leadingPrincipalMinorsPositive" not in sylvester_source
 
 
 @pytest.mark.integration
