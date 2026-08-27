@@ -45,6 +45,7 @@ class Settings(BaseModel):
         frozen=True,
         extra="forbid",
         allow_inf_nan=False,
+        arbitrary_types_allowed=True,
     )
 
     model_name: NonBlankString

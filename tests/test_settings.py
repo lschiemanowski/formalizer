@@ -1,6 +1,7 @@
 import math
 
 import pytest
+from httpx import Timeout
 from pydantic import ValidationError
 
 from formalizer.settings import Settings
@@ -68,3 +69,14 @@ def test_loogle_backend_result_ceiling_defaults_to_one_hundred() -> None:
     settings = Settings(model_name="test-model")
 
     assert settings.sandbox.search_max_results == 100
+
+
+def test_model_http_timeout_can_use_the_provider_timeout_type() -> None:
+    timeout = Timeout(60)
+
+    settings = Settings(
+        model_name="test-model",
+        model_settings={"timeout": timeout},
+    )
+
+    assert settings.model_settings["timeout"] is timeout

@@ -5,6 +5,7 @@ from typing import Literal
 from uuid import UUID
 
 import pytest
+from pydantic_ai import ModelAPIError, ModelHTTPError, UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_evals import Case, Dataset
 
 import formalizer.eval.runner as runner_module
@@ -16,8 +17,9 @@ from formalizer.eval import (
     ProblemProvenance,
     evaluate_dataset,
 )
-from formalizer.lean import LeanResult
+from formalizer.lean import LeanInfrastructureError, LeanResult
 from formalizer.problem import FormalizationProblem
+from formalizer.search import SearchInfrastructureError
 from formalizer.settings import Settings
 
 ACCEPTED_PROBLEM = FormalizationProblem(
@@ -207,3 +209,129 @@ async def test_dataset_evaluation_propagates_cancellation(
             settings,
             progress=False,
         )
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (ModelAPIError("test:model", "connection timed out"), True),
+        (ModelHTTPError(408, "test:model"), True),
+        (ModelHTTPError(429, "test:model"), True),
+        (ModelHTTPError(500, "test:model"), True),
+        (ModelHTTPError(400, "test:model"), False),
+        (ModelHTTPError(401, "test:model"), False),
+        (LeanInfrastructureError("Docker unavailable"), True),
+        (SearchInfrastructureError("Loogle unavailable"), True),
+        (UnexpectedModelBehavior("invalid model response"), False),
+        (UsageLimitExceeded("request limit reached"), False),
+        (TimeoutError("run timed out"), False),
+    ],
+)
+def test_retryable_infrastructure_failure_classification(
+    error: BaseException,
+    expected: bool,
+) -> None:
+    assert runner_module.is_retryable_infrastructure_failure(error) is expected
+
+
+async def test_dataset_retries_an_infrastructure_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(model_name="test:model")
+    attempts = 0
+    accepted_check = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+
+    async def flaky_formalizer(
+        problem: FormalizationProblem,
+        received_settings: Settings,
+    ) -> object:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise ModelAPIError("test:model", "connection timed out")
+        return SimpleNamespace(
+            run_id="2dc4f495-1513-484d-9082-4f7a229edcd7",
+            output=Submission(code="accepted", check=accepted_check),
+        )
+
+    monkeypatch.setattr(runner_module, "formalize", flaky_formalizer)
+    dataset = Dataset[FormalizationProblem, EvalOutput, ProblemMetadata](
+        name="infrastructure-retry",
+        cases=[Case(name="accepted", inputs=ACCEPTED_PROBLEM)],
+        evaluators=[LeanVerified()],
+    )
+
+    report = await evaluate_dataset(
+        dataset,
+        settings,
+        progress=False,
+        infrastructure_retries=1,
+    )
+
+    assert attempts == 2
+    assert not report.failures
+    assert report.cases[0].assertions["LeanVerified"].value is True
+
+
+async def test_dataset_does_not_retry_a_model_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(model_name="test:model")
+    attempts = 0
+
+    async def budget_exhausted(
+        problem: FormalizationProblem,
+        received_settings: Settings,
+    ) -> object:
+        nonlocal attempts
+        attempts += 1
+        raise UsageLimitExceeded("request limit reached")
+
+    monkeypatch.setattr(runner_module, "formalize", budget_exhausted)
+    dataset = Dataset[FormalizationProblem, EvalOutput, ProblemMetadata](
+        name="model-failure",
+        cases=[Case(name="failed", inputs=FAILING_PROBLEM)],
+    )
+
+    report = await evaluate_dataset(
+        dataset,
+        settings,
+        progress=False,
+        infrastructure_retries=2,
+    )
+
+    assert attempts == 1
+    assert len(report.failures) == 1
+    assert report.failures[0].error_message.startswith("UsageLimitExceeded:")
+
+
+async def test_dataset_stops_after_the_configured_infrastructure_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(model_name="test:model")
+    attempts = 0
+
+    async def unavailable_provider(
+        problem: FormalizationProblem,
+        received_settings: Settings,
+    ) -> object:
+        nonlocal attempts
+        attempts += 1
+        raise ModelAPIError("test:model", "connection timed out")
+
+    monkeypatch.setattr(runner_module, "formalize", unavailable_provider)
+    dataset = Dataset[FormalizationProblem, EvalOutput, ProblemMetadata](
+        name="infrastructure-retry-limit",
+        cases=[Case(name="failed", inputs=FAILING_PROBLEM)],
+    )
+
+    report = await evaluate_dataset(
+        dataset,
+        settings,
+        progress=False,
+        infrastructure_retries=2,
+    )
+
+    assert attempts == 3
+    assert len(report.failures) == 1
+    assert report.failures[0].error_message == "ModelAPIError: connection timed out"

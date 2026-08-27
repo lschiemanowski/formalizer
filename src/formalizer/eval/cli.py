@@ -21,15 +21,23 @@ from formalizer.problem import FormalizationProblem
 from formalizer.settings import RunSettings, Settings
 
 DEFAULT_MAX_TOKENS = 8_192
-DEFAULT_REQUEST_LIMIT = 20
-DEFAULT_OUTPUT_TOKENS_LIMIT = 30_000
-DEFAULT_TOTAL_TOKENS_LIMIT = 250_000
+DEFAULT_REQUEST_LIMIT = 30
+DEFAULT_OUTPUT_TOKENS_LIMIT = 50_000
+DEFAULT_TOTAL_TOKENS_LIMIT = 1_000_000
+DEFAULT_INFRASTRUCTURE_RETRIES = 2
 
 
 def _positive_int(value: str) -> int:
     parsed = int(value)
     if parsed < 1:
         raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
+
+
+def _nonnegative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must not be negative")
     return parsed
 
 
@@ -73,6 +81,12 @@ def _parser() -> argparse.ArgumentParser:
         type=_positive_int,
         default=DEFAULT_TOTAL_TOKENS_LIMIT,
         help="Maximum cumulative input and output tokens per case.",
+    )
+    parser.add_argument(
+        "--infrastructure-retries",
+        type=_nonnegative_int,
+        default=DEFAULT_INFRASTRUCTURE_RETRIES,
+        help="Retries after transient provider, Lean, or Loogle infrastructure failures.",
     )
     parser.add_argument(
         "--split",
@@ -152,6 +166,7 @@ def _experiment_metadata(
     settings: Settings,
     repeat: int,
     selection: dict[str, object],
+    infrastructure_retries: int,
 ) -> dict[str, object]:
     git_commit, git_dirty = _git_provenance()
     return {
@@ -166,6 +181,9 @@ def _experiment_metadata(
             "request_limit": settings.run.usage_limits.request_limit,
             "output_tokens_limit": settings.run.usage_limits.output_tokens_limit,
             "total_tokens_limit": settings.run.usage_limits.total_tokens_limit,
+        },
+        "retry_policy": {
+            "infrastructure_retries": infrastructure_retries,
         },
         "started_at": datetime.now(UTC).isoformat(),
         "formalizer_version": version("formalizer"),
@@ -219,6 +237,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             settings=settings,
             repeat=args.repeat,
             selection=selection,
+            infrastructure_retries=args.infrastructure_retries,
         )
         args.output_dir.mkdir(parents=True)
 
@@ -232,6 +251,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 settings,
                 name=args.name,
                 repeat=args.repeat,
+                infrastructure_retries=args.infrastructure_retries,
                 metadata=metadata,
             )
         )

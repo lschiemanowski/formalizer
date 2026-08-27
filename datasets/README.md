@@ -169,9 +169,9 @@ uv run formalizer-eval \
 ```
 
 Evaluation runs use explicit per-case budgets so model failures and costs remain comparable. The
-defaults are 8,192 output tokens per model request, 20 model requests, 30,000 cumulative output
-tokens, and 250,000 cumulative input-plus-output tokens. Override them when an experiment requires
-a different predeclared budget:
+defaults are 8,192 output tokens per model request, 30 model requests, 50,000 cumulative output
+tokens, and 1,000,000 cumulative input-plus-output tokens. Override them when an experiment
+requires a different predeclared budget:
 
 ```bash
 uv run formalizer-eval \
@@ -183,7 +183,16 @@ uv run formalizer-eval \
   --max-tokens 4096 \
   --request-limit 12 \
   --output-tokens-limit 20000 \
-  --total-tokens-limit 150000
+  --total-tokens-limit 150000 \
+  --infrastructure-retries 0
 ```
 
-The resolved budget is recorded in the evaluation report metadata.
+The resolved budget and retry policy are recorded in the evaluation report metadata.
+
+By default, a case is retried at most twice after a transient provider connection failure, an HTTP
+408, 409, 425, 429, or 5xx response, or a Lean/Loogle infrastructure failure. Failed agent runs
+retain their separate run directories, and retry attempts are visible in Logfire. A failure during
+trusted-problem validation or Loogle startup occurs before a run directory is created and is
+recorded only in Logfire. Usage-limit exhaustion, a whole-run timeout, unexpected model behavior,
+and a rejected Lean submission are model-trial outcomes and are not retried. Set
+`--infrastructure-retries 0` to disable infrastructure retries.
