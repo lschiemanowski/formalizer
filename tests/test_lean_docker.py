@@ -2,7 +2,12 @@ import asyncio
 
 import pytest
 
-from formalizer.lean import DockerLeanChecker, InvalidLeanProblem, LeanInfrastructureError
+from formalizer.lean import (
+    DockerLeanChecker,
+    InvalidLeanProblem,
+    LeanInfrastructureError,
+    LeanWorkspace,
+)
 from formalizer.settings import SandboxSettings
 
 TRUSTED_PROBLEM = """\
@@ -100,6 +105,99 @@ end FormalizerSubmission
     )
 
     assert result.accepted
+
+
+@pytest.mark.integration
+async def test_solution_can_import_saved_auxiliary_modules_in_dependency_order() -> None:
+    workspace = LeanWorkspace()
+    workspace.save(
+        """\
+import FormalizerProblem
+import FormalizerWorkspace.Arithmetic.Base
+
+namespace FormalizerWorkspace.Arithmetic
+
+theorem helper : FormalizerProblem.Target := Base.helper
+
+end FormalizerWorkspace.Arithmetic
+""",
+        "Arithmetic/Derived.lean",
+    )
+    workspace.save(
+        """\
+import FormalizerProblem
+
+namespace FormalizerWorkspace.Arithmetic.Base
+
+theorem helper : FormalizerProblem.Target := by rfl
+
+end FormalizerWorkspace.Arithmetic.Base
+""",
+        "Arithmetic/Base.lean",
+    )
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+    main = """\
+import FormalizerWorkspace.Arithmetic.Derived
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := FormalizerWorkspace.Arithmetic.helper
+
+end FormalizerSubmission
+"""
+
+    accepted = await checker.check(main, auxiliary_sources=workspace.sources)
+    assert accepted.accepted, accepted
+
+    workspace.delete("Arithmetic/Derived.lean")
+    missing_import = await checker.check(main, auxiliary_sources=workspace.sources)
+
+    assert not missing_import.accepted
+    assert "FormalizerWorkspace.Arithmetic.Derived" in (
+        missing_import.stdout + missing_import.stderr
+    )
+
+
+@pytest.mark.integration
+async def test_solution_using_an_axiom_from_auxiliary_module_is_rejected() -> None:
+    workspace = LeanWorkspace()
+    workspace.save(
+        """\
+import FormalizerProblem
+
+namespace FormalizerWorkspace
+
+axiom cheat : FormalizerProblem.Target
+
+end FormalizerWorkspace
+""",
+        "Cheat.lean",
+    )
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerWorkspace.Cheat
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := FormalizerWorkspace.cheat
+
+end FormalizerSubmission
+""",
+        auxiliary_sources=workspace.sources,
+    )
+
+    assert result.exit_code == 0
+    assert not result.accepted
+    assert result.verification_error is not None
+    assert "FormalizerWorkspace.cheat" in result.verification_error
 
 
 @pytest.mark.integration

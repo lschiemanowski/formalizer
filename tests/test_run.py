@@ -1,5 +1,6 @@
 import asyncio
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from types import TracebackType
 from typing import Self
@@ -20,7 +21,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 import formalizer.run as run_module
 from formalizer.agent import AgentDependencies, create_agent
-from formalizer.lean import InvalidLeanProblem, LeanResult
+from formalizer.lean import InvalidLeanProblem, LeanResult, LeanWorkspace
 from formalizer.problem import FormalizationProblem
 from formalizer.run import RunManifest, run_formalizer
 from formalizer.search import SearchResult
@@ -59,16 +60,24 @@ end FormalizerSubmission
 class AcceptingLeanChecker:
     def __init__(self) -> None:
         self.checked_code: list[str] = []
+        self.checked_auxiliary_sources: list[dict[str, str]] = []
         self.result = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
 
-    async def check(self, code: str) -> LeanResult:
+    async def check(
+        self,
+        code: str,
+        *,
+        auxiliary_sources: Mapping[str, str] | None = None,
+    ) -> LeanResult:
         self.checked_code.append(code)
+        self.checked_auxiliary_sources.append(dict(auxiliary_sources or {}))
         return self.result
 
 
 class RejectingLeanChecker:
     def __init__(self) -> None:
         self.checked_code: list[str] = []
+        self.checked_auxiliary_sources: list[dict[str, str]] = []
         self.result = LeanResult(
             stdout="",
             stderr="Main.lean:4:2: error: type mismatch",
@@ -76,8 +85,14 @@ class RejectingLeanChecker:
             duration_s=0.1,
         )
 
-    async def check(self, code: str) -> LeanResult:
+    async def check(
+        self,
+        code: str,
+        *,
+        auxiliary_sources: Mapping[str, str] | None = None,
+    ) -> LeanResult:
         self.checked_code.append(code)
+        self.checked_auxiliary_sources.append(dict(auxiliary_sources or {}))
         return self.result
 
 
@@ -117,6 +132,8 @@ class ManagedSearchBackend(UnexpectedSearchBackend):
 async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
     run_id = UUID("0a8552d3-cf94-4640-b67c-9938387bdf7a")
     checker = AcceptingLeanChecker()
+    workspace = LeanWorkspace()
+    workspace.save("theorem helper : True := by trivial\n", "Helper.lean")
 
     async def submit_valid_code(
         messages: list[ModelMessage],
@@ -146,6 +163,7 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
         agent=create_agent(FunctionModel(submit_valid_code)),
         deps=AgentDependencies(
             lean_checker=checker,
+            lean_workspace=workspace,
             search_backend=UnexpectedSearchBackend(),
         ),
         settings=RunSettings(runs_dir=tmp_path),
@@ -170,6 +188,9 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
     assert manifest.started_at <= manifest.finished_at
     assert (run_dir / "final.lean").read_text() == VALID_CODE
     assert (run_dir / "problem.lean").read_text() == PROBLEM.source
+    assert (
+        run_dir / "workspace" / "FormalizerWorkspace" / "Helper.lean"
+    ).read_text() == "theorem helper : True := by trivial\n"
 
 
 async def test_rejected_submission_writes_failed_run_artifacts(
@@ -401,6 +422,52 @@ async def test_model_request_limit_is_enforced_and_persisted(
     assert manifest["status"] == "failed"
     assert manifest["error_type"] == "UsageLimitExceeded"
     assert not (run_dir / "final.lean").exists()
+
+
+async def test_failed_run_persists_auxiliary_workspace(tmp_path: Path) -> None:
+    run_id = UUID("a275d296-f49b-48b9-a479-6463994800c7")
+
+    async def save_helper(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        assert messages
+        assert "save" in [tool.name for tool in agent_info.function_tools]
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="save",
+                    args={
+                        "code": "theorem helper : True := by trivial\n",
+                        "filename": "Helper.lean",
+                    },
+                )
+            ]
+        )
+
+    with pytest.raises(UsageLimitExceeded):
+        await run_formalizer(
+            PROBLEM,
+            agent=create_agent(FunctionModel(save_helper)),
+            deps=AgentDependencies(
+                lean_checker=AcceptingLeanChecker(),
+                search_backend=UnexpectedSearchBackend(),
+            ),
+            settings=RunSettings(
+                runs_dir=tmp_path,
+                usage_limits=UsageLimits(request_limit=1),
+            ),
+            run_id=run_id,
+        )
+
+    run_dir = tmp_path / str(run_id)
+    manifest = json.loads((run_dir / "run.json").read_bytes())
+
+    assert manifest["status"] == "failed"
+    assert manifest["error_type"] == "UsageLimitExceeded"
+    assert (
+        run_dir / "workspace" / "FormalizerWorkspace" / "Helper.lean"
+    ).read_text() == "theorem helper : True := by trivial\n"
 
 
 async def test_formalize_wires_settings_and_manages_search_backend(

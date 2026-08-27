@@ -9,7 +9,7 @@ from pydantic_ai import Agent, AgentRunResult, capture_run_messages
 from pydantic_ai.messages import ModelMessagesTypeAdapter
 
 from formalizer.agent import AgentDependencies, Submission, create_agent, problem_prompt
-from formalizer.lean import DockerLeanChecker, LeanResult
+from formalizer.lean import DockerLeanChecker, LeanResult, LeanWorkspace
 from formalizer.problem import FormalizationProblem
 from formalizer.search import DockerLoogleBackend
 from formalizer.settings import RunSettings, Settings
@@ -36,6 +36,14 @@ def _write_manifest(run_dir: Path, manifest: RunManifest) -> None:
         f"{manifest.model_dump_json(indent=2)}\n",
         encoding="utf-8",
     )
+
+
+def _write_workspace(run_dir: Path, workspace: LeanWorkspace) -> None:
+    workspace_dir = run_dir / "workspace"
+    for archive_path, source in workspace.sources.items():
+        destination = workspace_dir / archive_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(source, encoding="utf-8")
 
 
 async def run_formalizer(
@@ -73,6 +81,7 @@ async def run_formalizer(
                 error=str(error),
             )
             (run_dir / "messages.json").write_bytes(ModelMessagesTypeAdapter.dump_json(messages))
+            _write_workspace(run_dir, deps.lean_workspace)
             _write_manifest(run_dir, failed_manifest)
             raise
 
@@ -88,6 +97,7 @@ async def run_formalizer(
     )
 
     (run_dir / "messages.json").write_bytes(result.all_messages_json())
+    _write_workspace(run_dir, deps.lean_workspace)
     _write_manifest(run_dir, manifest)
     (run_dir / "final.lean").write_text(result.output.code, encoding="utf-8")
 

@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 
 import pytest
 from pydantic_ai import ModelSettings
@@ -12,7 +12,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from formalizer.agent import AgentDependencies, create_agent
-from formalizer.lean import LeanResult
+from formalizer.lean import DeletedLeanFile, LeanResult, LeanWorkspace, SavedLeanFile
 from formalizer.search import SearchHit, SearchResult
 
 VALID_CODE = """import Mathlib
@@ -31,9 +31,16 @@ class FakeLeanChecker:
     def __init__(self, results: list[LeanResult]) -> None:
         self._results: Iterator[LeanResult] = iter(results)
         self.checked_code: list[str] = []
+        self.checked_auxiliary_sources: list[dict[str, str]] = []
 
-    async def check(self, code: str) -> LeanResult:
+    async def check(
+        self,
+        code: str,
+        *,
+        auxiliary_sources: Mapping[str, str] | None = None,
+    ) -> LeanResult:
         self.checked_code.append(code)
+        self.checked_auxiliary_sources.append(dict(auxiliary_sources or {}))
         return next(self._results)
 
 
@@ -184,6 +191,108 @@ async def test_lean_execute_returns_diagnostics_without_ending_the_run() -> None
     assert result.output.code == VALID_CODE
     assert result.output.check.accepted
     assert checker.checked_code == [INVALID_CODE, VALID_CODE]
+
+
+async def test_agent_can_save_import_and_delete_auxiliary_lean_modules() -> None:
+    accepted_result = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+    checker = FakeLeanChecker([accepted_result, accepted_result])
+    workspace = LeanWorkspace()
+    model_calls = 0
+    main_with_helper = """\
+import FormalizerWorkspace.Helper
+
+namespace FormalizerSubmission
+
+theorem solution : True := FormalizerWorkspace.helper
+
+end FormalizerSubmission
+"""
+
+    async def manage_workspace_then_submit(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        nonlocal model_calls
+        model_calls += 1
+        function_tools = [tool.name for tool in agent_info.function_tools]
+        assert "save" in function_tools
+        assert "delete" in function_tools
+        assert "lean_execute" in function_tools
+
+        if model_calls == 1:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="save",
+                        args={
+                            "code": (
+                                "namespace FormalizerWorkspace\n"
+                                "theorem helper : True := by trivial\n"
+                                "end FormalizerWorkspace\n"
+                            ),
+                            "filename": "Helper.lean",
+                        },
+                    )
+                ]
+            )
+
+        if model_calls == 2:
+            saved = [
+                part.content
+                for message in messages
+                for part in message.parts
+                if isinstance(part, ToolReturnPart) and part.tool_name == "save"
+            ]
+            assert saved == [
+                SavedLeanFile(
+                    filename="Helper.lean",
+                    module="FormalizerWorkspace.Helper",
+                    revision=1,
+                )
+            ]
+            return ModelResponse(
+                parts=[ToolCallPart(tool_name="lean_execute", args={"code": main_with_helper})]
+            )
+
+        if model_calls == 3:
+            assert checker.checked_auxiliary_sources == [
+                {
+                    "FormalizerWorkspace/Helper.lean": (
+                        "namespace FormalizerWorkspace\n"
+                        "theorem helper : True := by trivial\n"
+                        "end FormalizerWorkspace\n"
+                    )
+                }
+            ]
+            return ModelResponse(
+                parts=[ToolCallPart(tool_name="delete", args={"filename": "Helper.lean"})]
+            )
+
+        deleted = [
+            part.content
+            for message in messages
+            for part in message.parts
+            if isinstance(part, ToolReturnPart) and part.tool_name == "delete"
+        ]
+        assert deleted == [DeletedLeanFile(filename="Helper.lean", deleted=True, revision=2)]
+        return final_submission_response(VALID_CODE)
+
+    agent = create_agent(FunctionModel(manage_workspace_then_submit))
+
+    result = await agent.run(
+        "Prove that 1 + 1 = 2.",
+        deps=AgentDependencies(
+            lean_checker=checker,
+            lean_workspace=workspace,
+            search_backend=UnexpectedSearchBackend(),
+        ),
+    )
+
+    assert model_calls == 4
+    assert result.output.check.accepted
+    assert checker.checked_code == [main_with_helper, VALID_CODE]
+    assert checker.checked_auxiliary_sources[-1] == {}
+    assert workspace.sources == {}
 
 
 @pytest.mark.parametrize(

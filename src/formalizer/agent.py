@@ -1,11 +1,18 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Annotated
 
 from pydantic import Field
-from pydantic_ai import Agent, ModelSettings, RunContext, ToolOutput
+from pydantic_ai import Agent, ModelRetry, ModelSettings, RunContext, ToolOutput
 from pydantic_ai.models import Model
 
-from formalizer.lean import LeanChecker, LeanResult
+from formalizer.lean import (
+    DeletedLeanFile,
+    InvalidLeanWorkspacePath,
+    LeanChecker,
+    LeanResult,
+    LeanWorkspace,
+    SavedLeanFile,
+)
 from formalizer.problem import FormalizationProblem
 from formalizer.search import SearchBackend, SearchResult
 
@@ -37,20 +44,27 @@ Formalizer verifies your Main.lean by compiling it and then compiling this trust
 Therefore, Main.lean must expose FormalizerSubmission.solution with a type definitionally equal to
 FormalizerProblem.Target. Merely compiling some other theorem or example does not solve the task.
 
-You have three tools:
+You have five tools:
 
 - mathlib_search searches Mathlib for relevant declarations and returns matching names, types,
   modules, and documentation. It returns at most 10 results by default; you may request between 1
   and 100 results when a broader or narrower result set would help.
 
+- save stores an auxiliary Lean file for the rest of the run. Give it a relative filename such as
+  `Sylvester/Blocks.lean`; the resulting module is `FormalizerWorkspace.Sylvester.Blocks`. Saved
+  files may import FormalizerProblem and one another. Saving the same filename overwrites it.
+  Main.lean and the trusted verification modules cannot be saved this way.
+
+- delete removes a previously saved auxiliary Lean file. It reports whether the file existed.
+
 - lean_execute checks a candidate solution without ending the run. Pass the complete contents of
-  Main.lean, not a fragment or patch. It compiles FormalizerProblem.lean, your Main.lean, and the
-  trusted FormalizerCheck.lean shown above. It returns Lean's output, diagnostics, exit status,
-  duration, and timeout status. Each call uses a fresh isolated environment, so files and state do
-  not persist between calls.
+  Main.lean, not a fragment or patch. It compiles FormalizerProblem.lean, all currently saved
+  auxiliary files, your Main.lean, and the trusted FormalizerCheck.lean shown above. It returns
+  Lean's output, diagnostics, exit status, duration, and timeout status. Each check uses a fresh
+  isolated environment; only files explicitly stored with save persist across checks.
 
 - final_submission is the only way to submit your final answer and finish the run. Pass the
-  complete contents of the final Main.lean. It performs the same three-module check again in a
+  complete contents of the final Main.lean. It performs the same complete check again in a
   fresh environment. The run then ends, whether the submission is accepted or rejected. A rejected
   final submission is recorded as a
   failed trial, and you will not receive another turn to correct it.
@@ -64,6 +78,7 @@ Call final_submission only when you are ready to end the run with the submitted 
 class AgentDependencies:
     lean_checker: LeanChecker
     search_backend: SearchBackend
+    lean_workspace: LeanWorkspace = field(default_factory=LeanWorkspace)
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,12 +126,38 @@ async def mathlib_search(
     return await ctx.deps.search_backend.search(query, max_results=max_results)
 
 
+async def save(
+    ctx: RunContext[AgentDependencies],
+    code: str,
+    filename: str,
+) -> SavedLeanFile:
+    """Save or overwrite an auxiliary module under FormalizerWorkspace."""
+    try:
+        return ctx.deps.lean_workspace.save(code, filename)
+    except InvalidLeanWorkspacePath as error:
+        raise ModelRetry(str(error)) from error
+
+
+async def delete(
+    ctx: RunContext[AgentDependencies],
+    filename: str,
+) -> DeletedLeanFile:
+    """Delete a saved auxiliary module if it exists."""
+    try:
+        return ctx.deps.lean_workspace.delete(filename)
+    except InvalidLeanWorkspacePath as error:
+        raise ModelRetry(str(error)) from error
+
+
 async def lean_execute(
     ctx: RunContext[AgentDependencies],
     code: str,
 ) -> LeanResult:
     """Check a candidate Main.lean against the immutable problem without ending the run."""
-    return await ctx.deps.lean_checker.check(code)
+    return await ctx.deps.lean_checker.check(
+        code,
+        auxiliary_sources=ctx.deps.lean_workspace.sources,
+    )
 
 
 async def final_submission(
@@ -124,7 +165,10 @@ async def final_submission(
     code: str,
 ) -> Submission:
     """End the run with this Main.lean and its verification result."""
-    check = await ctx.deps.lean_checker.check(code)
+    check = await ctx.deps.lean_checker.check(
+        code,
+        auxiliary_sources=ctx.deps.lean_workspace.sources,
+    )
     return Submission(code=code, check=check)
 
 
@@ -138,7 +182,7 @@ def create_agent(
         deps_type=AgentDependencies,
         instructions=_INSTRUCTIONS,
         model_settings=model_settings,
-        tools=[mathlib_search, lean_execute],
+        tools=[mathlib_search, save, delete, lean_execute],
         output_type=ToolOutput[Submission](
             final_submission,
             name="final_submission",
