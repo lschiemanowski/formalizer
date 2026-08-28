@@ -177,6 +177,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
         "temperature": None,
         "top_p": None,
         "thinking": None,
+        "tool_choice": None,
         "openrouter_provider": None,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}
@@ -294,6 +295,8 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
             "low",
             "--temperature",
             "0.6",
+            "--tool-choice",
+            "auto",
             "--openrouter-provider",
             "novita",
         ]
@@ -310,12 +313,14 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
         },
         "temperature": 0.6,
         "thinking": "low",
+        "tool_choice": "auto",
     }
     assert metadata["model_settings"] == {
         "max_tokens": 8192,
         "temperature": 0.6,
         "top_p": None,
         "thinking": "low",
+        "tool_choice": "auto",
         "openrouter_provider": {
             "only": ["novita"],
             "allow_fallbacks": False,
@@ -810,6 +815,7 @@ def test_experiment_metadata_records_reproducibility_inputs(
         "temperature": None,
         "top_p": None,
         "thinking": None,
+        "tool_choice": None,
         "openrouter_provider": None,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}

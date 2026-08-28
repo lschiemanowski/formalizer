@@ -81,6 +81,14 @@ def _parser() -> argparse.ArgumentParser:
             "support for all requested model parameters."
         ),
     )
+    parser.add_argument(
+        "--tool-choice",
+        choices=("auto", "required"),
+        help=(
+            "Tool-selection mode; use 'auto' for providers that support tools but cannot force "
+            "a tool call. Plain text still cannot complete a Formalizer run."
+        ),
+    )
     parser.add_argument("--name", required=True, type=_non_blank)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--repeat", type=_positive_int, default=1)
@@ -178,6 +186,8 @@ def _model_settings(args: argparse.Namespace) -> ModelSettings:
         }
     if args.thinking is not None:
         model_settings["thinking"] = args.thinking
+    if args.tool_choice is not None:
+        model_settings["tool_choice"] = args.tool_choice
     if args.temperature is not None:
         model_settings["temperature"] = args.temperature
     if args.top_p is not None:
@@ -253,6 +263,7 @@ def _experiment_metadata(
             "temperature": settings.model_settings.get("temperature"),
             "top_p": settings.model_settings.get("top_p"),
             "thinking": settings.model_settings.get("thinking"),
+            "tool_choice": settings.model_settings.get("tool_choice"),
             "openrouter_provider": settings.model_settings.get("openrouter_provider"),
         },
         "retry_policy": {

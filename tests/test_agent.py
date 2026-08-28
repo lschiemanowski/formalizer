@@ -6,6 +6,7 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
     RetryPromptPart,
+    TextPart,
     ToolCallPart,
     ToolReturnPart,
 )
@@ -94,6 +95,7 @@ async def test_verified_final_submission_ends_the_run() -> None:
         agent_info: AgentInfo,
     ) -> ModelResponse:
         assert messages
+        assert not agent_info.allow_text_output
         assert [tool.name for tool in agent_info.output_tools] == ["final_submission"]
         return final_submission_response(VALID_CODE)
 
@@ -109,6 +111,54 @@ async def test_verified_final_submission_ends_the_run() -> None:
 
     assert result.output.code == VALID_CODE
     assert result.output.check == accepted_result
+    assert checker.checked_code == [VALID_CODE]
+
+
+async def test_auto_tool_choice_retries_plain_text_until_final_submission() -> None:
+    accepted_result = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+    checker = FakeLeanChecker([accepted_result])
+    model_calls = 0
+    model_settings = ModelSettings(tool_choice="auto")
+
+    async def answer_then_submit(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        nonlocal model_calls
+        model_calls += 1
+        assert agent_info.allow_text_output
+        assert agent_info.model_settings == model_settings
+
+        if model_calls == 1:
+            return ModelResponse(parts=[TextPart(content="Here is the proof.")])
+
+        retry_prompts = [
+            part
+            for message in messages
+            for part in message.parts
+            if isinstance(part, RetryPromptPart)
+        ]
+        assert [part.content for part in retry_prompts] == [
+            "Plain text cannot complete the run; call one of the available tools."
+        ]
+        return final_submission_response(VALID_CODE)
+
+    agent = create_agent(
+        FunctionModel(answer_then_submit),
+        model_settings=model_settings,
+    )
+
+    result = await agent.run(
+        "Prove that 1 + 1 = 2.",
+        deps=AgentDependencies(
+            lean_checker=checker,
+            search_backend=UnexpectedSearchBackend(),
+        ),
+    )
+
+    assert model_calls == 2
+    assert result.output.code == VALID_CODE
+    assert result.output.check.accepted
     assert checker.checked_code == [VALID_CODE]
 
 

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Annotated
 
 from pydantic import Field
-from pydantic_ai import Agent, ModelRetry, ModelSettings, RunContext, ToolOutput
+from pydantic_ai import Agent, ModelRetry, ModelSettings, RunContext, TextOutput, ToolOutput
 from pydantic_ai.models import Model
 
 from formalizer.lean import (
@@ -164,19 +164,29 @@ async def final_submission(
     return Submission(code=code, check=check)
 
 
+def _reject_plain_text(_text: str) -> Submission:
+    raise ModelRetry("Plain text cannot complete the run; call one of the available tools.")
+
+
 def create_agent(
     model: Model | str,
     *,
     model_settings: ModelSettings | None = None,
 ) -> Agent[AgentDependencies, Submission]:
+    final_output = ToolOutput[Submission](
+        final_submission,
+        name="final_submission",
+    )
+    output_type = (
+        [final_output, TextOutput[Submission](_reject_plain_text)]
+        if model_settings is not None and model_settings.get("tool_choice") == "auto"
+        else final_output
+    )
     return Agent[AgentDependencies, Submission](
         model,
         deps_type=AgentDependencies,
         instructions=_INSTRUCTIONS,
         model_settings=model_settings,
         tools=[mathlib_search, save, lean_execute],
-        output_type=ToolOutput[Submission](
-            final_submission,
-            name="final_submission",
-        ),
+        output_type=output_type,
     )
