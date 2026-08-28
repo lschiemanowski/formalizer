@@ -208,6 +208,11 @@ uv run formalizer-eval \
 
 The resolved budget and retry policy are recorded in the evaluation report metadata.
 
+The CLI prints a Formalizer outcome summary whose success-rate denominator includes both completed
+cases and cases that raised task errors. It suppresses Pydantic Evals' built-in averages row because
+that row calculates assertion percentages from completed cases only. The full cases, failures,
+metrics, and experiment metadata remain unchanged in `report.json`.
+
 Cases run sequentially by default. Use `--max-concurrency` to evaluate a bounded number of case
 attempts at once:
 

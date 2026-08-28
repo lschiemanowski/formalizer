@@ -16,6 +16,7 @@ from formalizer.eval.datasets import load_formalizer_dataset, select_formalizer_
 from formalizer.eval.evaluators import LeanVerified
 from formalizer.eval.models import EvalOutput, ProblemMetadata
 from formalizer.eval.observability import configure_logfire
+from formalizer.eval.reporting import print_outcome_summary
 from formalizer.eval.runner import evaluate_dataset
 from formalizer.problem import FormalizationProblem
 from formalizer.settings import RunSettings, Settings
@@ -268,7 +269,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         )
         write_evaluation_report(args.output_dir / "report.json", report)
-        report.print()
+        report.print(include_averages=False)
+        print_outcome_summary(report)
     except (KeyboardInterrupt, asyncio.CancelledError):
         print("formalizer-eval: interrupted", file=sys.stderr)
         return 130

@@ -1,6 +1,7 @@
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -36,14 +37,19 @@ class FakeReport:
         self.report_evaluator_failures = evaluator_failures or []
         self.cases = [FakeCase(case_evaluator_failures or [])]
         self.printed = False
+        self.include_averages: bool | None = None
 
-    def print(self) -> None:
+    def print(self, *, include_averages: bool = True) -> None:
         self.printed = True
+        self.include_averages = include_averages
 
 
 class FakeCase:
     def __init__(self, evaluator_failures: list[object]) -> None:
         self.evaluator_failures = evaluator_failures
+        self.assertions = (
+            {} if evaluator_failures else {"LeanVerified": SimpleNamespace(value=True)}
+        )
 
 
 def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
@@ -59,6 +65,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     logfire_calls = 0
     evaluation_calls: list[tuple[FakeDataset, Settings, str, int, int, int, dict[str, object]]] = []
     persisted_reports: list[tuple[Path, FakeReport]] = []
+    printed_summaries: list[FakeReport] = []
 
     class FakeDatasetType:
         @classmethod
@@ -100,6 +107,11 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     monkeypatch.setattr(cli_module, "configure_logfire", fake_configure_logfire)
     monkeypatch.setattr(cli_module, "evaluate_dataset", fake_evaluate_dataset)
     monkeypatch.setattr(cli_module, "write_evaluation_report", fake_write_evaluation_report)
+    monkeypatch.setattr(
+        cli_module,
+        "print_outcome_summary",
+        lambda received_report: printed_summaries.append(received_report),
+    )
 
     exit_code = cli_module.main(
         [
@@ -163,6 +175,8 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     assert metadata["execution"] == {"max_concurrency": 1}
     assert persisted_reports == [(output_dir / "report.json", report)]
     assert report.printed
+    assert report.include_averages is False
+    assert printed_summaries == [report]
 
 
 def test_eval_cli_applies_and_records_budget_overrides(
@@ -381,7 +395,7 @@ cases:
 @pytest.mark.parametrize(
     "report",
     [
-        FakeReport(failures=[object()]),
+        FakeReport(failures=[SimpleNamespace(error_message="RuntimeError: failed")]),
         FakeReport(evaluator_failures=[object()]),
         FakeReport(case_evaluator_failures=[object()]),
     ],
