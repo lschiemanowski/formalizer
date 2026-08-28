@@ -208,6 +208,23 @@ uv run formalizer-eval \
 
 The resolved budget and retry policy are recorded in the evaluation report metadata.
 
+Model behavior controls are optional so omission preserves the model or provider default. Use
+`--thinking` to select a Pydantic AI thinking-effort level, or change one sampling control with
+`--temperature` or `--top-p`. Temperature and `top_p` are mutually exclusive. The effective CLI
+choices, including explicit `null` values for provider defaults, are recorded under
+`model_settings` in the report metadata.
+
+For example, this isolates lower reasoning effort while leaving sampling at provider defaults:
+
+```bash
+uv run formalizer-eval \
+  --dataset datasets/baseline-eval-v1.yaml \
+  --model openrouter:z-ai/glm-5.3-flash \
+  --name glm-low-thinking-pilot \
+  --output-dir runs/evals/glm-low-thinking-pilot \
+  --thinking low
+```
+
 The CLI prints a Formalizer outcome summary whose success-rate denominator includes both completed
 cases and cases that raised task errors. It suppresses Pydantic Evals' built-in averages row because
 that row calculates assertion percentages from completed cases only. The full cases, failures,

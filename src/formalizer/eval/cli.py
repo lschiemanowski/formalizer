@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from hashlib import sha256
 from importlib.metadata import version
+from math import isfinite
 from pathlib import Path
 from subprocess import CalledProcessError, run
 
@@ -26,6 +27,7 @@ DEFAULT_REQUEST_LIMIT = 30
 DEFAULT_OUTPUT_TOKENS_LIMIT = 50_000
 DEFAULT_TOTAL_TOKENS_LIMIT = 1_000_000
 DEFAULT_INFRASTRUCTURE_RETRIES = 2
+THINKING_LEVELS = ("minimal", "low", "medium", "high", "xhigh")
 
 
 def _positive_int(value: str) -> int:
@@ -39,6 +41,20 @@ def _nonnegative_int(value: str) -> int:
     parsed = int(value)
     if parsed < 0:
         raise argparse.ArgumentTypeError("must not be negative")
+    return parsed
+
+
+def _nonnegative_finite_float(value: str) -> float:
+    parsed = float(value)
+    if not isfinite(parsed) or parsed < 0:
+        raise argparse.ArgumentTypeError("must be finite and not negative")
+    return parsed
+
+
+def _probability(value: str) -> float:
+    parsed = float(value)
+    if not isfinite(parsed) or not 0 < parsed <= 1:
+        raise argparse.ArgumentTypeError("must be finite and greater than 0 and at most 1")
     return parsed
 
 
@@ -70,6 +86,22 @@ def _parser() -> argparse.ArgumentParser:
         type=_positive_int,
         default=DEFAULT_MAX_TOKENS,
         help="Maximum output tokens for each model request.",
+    )
+    parser.add_argument(
+        "--thinking",
+        choices=THINKING_LEVELS,
+        help="Thinking effort; omit to use the model/provider default.",
+    )
+    sampling = parser.add_mutually_exclusive_group()
+    sampling.add_argument(
+        "--temperature",
+        type=_nonnegative_finite_float,
+        help="Sampling temperature; omit to use the model/provider default.",
+    )
+    sampling.add_argument(
+        "--top-p",
+        type=_probability,
+        help="Nucleus-sampling probability; omit to use the model/provider default.",
     )
     parser.add_argument(
         "--request-limit",
@@ -125,6 +157,17 @@ def _has_execution_failures(
         or report.report_evaluator_failures
         or any(case.evaluator_failures for case in report.cases)
     )
+
+
+def _model_settings(args: argparse.Namespace) -> ModelSettings:
+    model_settings = ModelSettings(max_tokens=args.max_tokens)
+    if args.thinking is not None:
+        model_settings["thinking"] = args.thinking
+    if args.temperature is not None:
+        model_settings["temperature"] = args.temperature
+    if args.top_p is not None:
+        model_settings["top_p"] = args.top_p
+    return model_settings
 
 
 def _git_provenance() -> tuple[str | None, bool | None]:
@@ -190,6 +233,12 @@ def _experiment_metadata(
             "output_tokens_limit": settings.run.usage_limits.output_tokens_limit,
             "total_tokens_limit": settings.run.usage_limits.total_tokens_limit,
         },
+        "model_settings": {
+            "max_tokens": settings.model_settings.get("max_tokens"),
+            "temperature": settings.model_settings.get("temperature"),
+            "top_p": settings.model_settings.get("top_p"),
+            "thinking": settings.model_settings.get("thinking"),
+        },
         "retry_policy": {
             "infrastructure_retries": infrastructure_retries,
         },
@@ -232,7 +281,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
         settings = Settings(
             model_name=args.model,
-            model_settings=ModelSettings(max_tokens=args.max_tokens),
+            model_settings=_model_settings(args),
             run=RunSettings(
                 runs_dir=args.output_dir / "runs",
                 usage_limits=UsageLimits(

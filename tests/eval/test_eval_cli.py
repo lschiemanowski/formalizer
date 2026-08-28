@@ -2,6 +2,7 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
@@ -171,6 +172,12 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
         "output_tokens_limit": 50_000,
         "total_tokens_limit": 1_000_000,
     }
+    assert metadata["model_settings"] == {
+        "max_tokens": 8192,
+        "temperature": None,
+        "top_p": None,
+        "thinking": None,
+    }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}
     assert metadata["execution"] == {"max_concurrency": 1}
     assert persisted_reports == [(output_dir / "report.json", report)]
@@ -247,6 +254,61 @@ def test_eval_cli_applies_and_records_budget_overrides(
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 0}
     assert metadata["execution"] == {"max_concurrency": 3}
+
+
+def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dataset_path = tmp_path / "baseline.yaml"
+    dataset_path.write_text("name: baseline-v1\ncases: []\n", encoding="utf-8")
+    output_dir = tmp_path / "experiment"
+    dataset = FakeDataset()
+    received: list[tuple[Settings, dict[str, object]]] = []
+
+    async def fake_evaluate_dataset(
+        received_dataset: FakeDataset,
+        settings: Settings,
+        **kwargs: object,
+    ) -> FakeReport:
+        assert received_dataset is dataset
+        received.append((settings, cast(dict[str, object], kwargs["metadata"])))
+        return FakeReport()
+
+    monkeypatch.setattr(cli_module, "load_formalizer_dataset", lambda path: dataset)
+    monkeypatch.setattr(cli_module, "evaluate_dataset", fake_evaluate_dataset)
+    monkeypatch.setattr(cli_module, "write_evaluation_report", lambda path, report: None)
+
+    exit_code = cli_module.main(
+        [
+            "--dataset",
+            str(dataset_path),
+            "--model",
+            "openrouter:z-ai/glm-5.3-flash",
+            "--name",
+            "glm-low-thinking",
+            "--output-dir",
+            str(output_dir),
+            "--thinking",
+            "low",
+            "--temperature",
+            "0.6",
+        ]
+    )
+
+    assert exit_code == 0
+    settings, metadata = received[0]
+    assert settings.model_settings == {
+        "max_tokens": 8192,
+        "temperature": 0.6,
+        "thinking": "low",
+    }
+    assert metadata["model_settings"] == {
+        "max_tokens": 8192,
+        "temperature": 0.6,
+        "top_p": None,
+        "thinking": "low",
+    }
 
 
 def test_eval_cli_selects_cases_and_records_filters(
@@ -573,6 +635,59 @@ def test_eval_cli_rejects_nonpositive_max_concurrency() -> None:
     assert exc_info.value.code == 2
 
 
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [
+        ("--temperature", "-0.1"),
+        ("--temperature", "inf"),
+        ("--temperature", "nan"),
+        ("--top-p", "0"),
+        ("--top-p", "1.1"),
+        ("--top-p", "nan"),
+    ],
+)
+def test_eval_cli_rejects_invalid_sampling_settings(option: str, value: str) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        cli_module.main(
+            [
+                "--dataset",
+                "baseline.yaml",
+                "--model",
+                "test:model",
+                "--name",
+                "sampling-test",
+                "--output-dir",
+                "experiment",
+                option,
+                value,
+            ]
+        )
+
+    assert exc_info.value.code == 2
+
+
+def test_eval_cli_rejects_temperature_and_top_p_together() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        cli_module.main(
+            [
+                "--dataset",
+                "baseline.yaml",
+                "--model",
+                "test:model",
+                "--name",
+                "sampling-test",
+                "--output-dir",
+                "experiment",
+                "--temperature",
+                "0.6",
+                "--top-p",
+                "0.95",
+            ]
+        )
+
+    assert exc_info.value.code == 2
+
+
 def test_eval_cli_refuses_to_reuse_an_experiment_directory(
     capsys: pytest.CaptureFixture[str],
     tmp_path: Path,
@@ -648,6 +763,12 @@ def test_experiment_metadata_records_reproducibility_inputs(
         "request_limit": 50,
         "output_tokens_limit": None,
         "total_tokens_limit": None,
+    }
+    assert metadata["model_settings"] == {
+        "max_tokens": None,
+        "temperature": None,
+        "top_p": None,
+        "thinking": None,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}
     assert metadata["execution"] == {"max_concurrency": 3}
