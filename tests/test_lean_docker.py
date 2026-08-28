@@ -162,6 +162,58 @@ end FormalizerSubmission
 
 
 @pytest.mark.integration
+async def test_unimported_invalid_auxiliary_module_does_not_affect_solution() -> None:
+    workspace = LeanWorkspace()
+    workspace.save("this is not Lean\n", "Scratch.lean")
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerProblem
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by rfl
+
+end FormalizerSubmission
+""",
+        auxiliary_sources=workspace.sources,
+    )
+
+    assert result.accepted, result
+
+
+@pytest.mark.integration
+async def test_imported_invalid_auxiliary_module_rejects_solution() -> None:
+    workspace = LeanWorkspace()
+    workspace.save("this is not Lean\n", "Scratch.lean")
+    checker = DockerLeanChecker(
+        SandboxSettings(),
+        problem_code=TRUSTED_PROBLEM,
+    )
+
+    result = await checker.check(
+        """\
+import FormalizerWorkspace.Scratch
+import FormalizerProblem
+
+namespace FormalizerSubmission
+
+theorem solution : FormalizerProblem.Target := by rfl
+
+end FormalizerSubmission
+""",
+        auxiliary_sources=workspace.sources,
+    )
+
+    assert not result.accepted
+    assert "FormalizerWorkspace/Scratch.lean" in result.stdout + result.stderr
+
+
+@pytest.mark.integration
 async def test_solution_using_an_axiom_from_auxiliary_module_is_rejected() -> None:
     workspace = LeanWorkspace()
     workspace.save(

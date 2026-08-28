@@ -160,19 +160,25 @@ def _validate_auxiliary_archive_path(archive_path: str) -> None:
         raise InvalidLeanWorkspacePath(f"Invalid auxiliary Lean archive path: {archive_path!r}")
 
 
-def _ordered_auxiliary_paths(auxiliary_sources: Mapping[str, str]) -> list[str]:
+def _imported_workspace_modules(source: str) -> set[str]:
+    return {
+        imported
+        for match in _IMPORT_LINE_PATTERN.finditer(source)
+        for imported in _WORKSPACE_MODULE_PATTERN.findall(match.group("modules"))
+    }
+
+
+def _ordered_auxiliary_paths(
+    auxiliary_sources: Mapping[str, str],
+    root_source: str,
+) -> list[str]:
     modules_by_path = {path: _workspace_module(PurePosixPath(path)) for path in auxiliary_sources}
     paths_by_module = {module: path for path, module in modules_by_path.items()}
     dependencies: dict[str, set[str]] = {}
 
     for path, source in auxiliary_sources.items():
         module = modules_by_path[path]
-        imported_workspace_modules = {
-            imported
-            for match in _IMPORT_LINE_PATTERN.finditer(source)
-            for imported in _WORKSPACE_MODULE_PATTERN.findall(match.group("modules"))
-        }
-        dependencies[module] = imported_workspace_modules & paths_by_module.keys()
+        dependencies[module] = _imported_workspace_modules(source) & paths_by_module.keys()
 
     ordered_modules: list[str] = []
     state: dict[str, int] = {}
@@ -189,13 +195,14 @@ def _ordered_auxiliary_paths(auxiliary_sources: Mapping[str, str]) -> list[str]:
         state[module] = 2
         ordered_modules.append(module)
 
-    for module in sorted(paths_by_module):
+    root_modules = _imported_workspace_modules(root_source) & paths_by_module.keys()
+    for module in sorted(root_modules):
         visit(module)
 
     return [paths_by_module[module] for module in ordered_modules]
 
 
-def _problem_check_command(auxiliary_sources: Mapping[str, str]) -> str:
+def _problem_check_command(auxiliary_sources: Mapping[str, str], solution_code: str) -> str:
     compile_commands = [
         (
             "lean --root=/workspace -o /workspace/FormalizerProblem.olean "
@@ -204,7 +211,7 @@ def _problem_check_command(auxiliary_sources: Mapping[str, str]) -> str:
         *(
             f"lean --root=/workspace -o /workspace/{path.removesuffix('.lean')}.olean "
             f"/workspace/{path}"
-            for path in _ordered_auxiliary_paths(auxiliary_sources)
+            for path in _ordered_auxiliary_paths(auxiliary_sources, solution_code)
         ),
         "lean --root=/workspace -o /workspace/Main.olean /workspace/Main.lean",
         "lean --root=/workspace /workspace/FormalizerCheck.lean",
@@ -353,7 +360,7 @@ class DockerLeanChecker:
             for archive_path in resolved_auxiliary_sources:
                 _validate_auxiliary_archive_path(archive_path)
 
-            command = _problem_check_command(resolved_auxiliary_sources)
+            command = _problem_check_command(resolved_auxiliary_sources, code)
             stdin = _source_archive(self.problem_code, code, resolved_auxiliary_sources)
 
         result = await self._run(command, stdin)
