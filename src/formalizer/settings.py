@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pydantic_ai import ModelSettings, UsageLimits
+from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
 type NonBlankString = Annotated[
     str,
@@ -49,6 +50,6 @@ class Settings(BaseModel):
     )
 
     model_name: NonBlankString
-    model_settings: ModelSettings = Field(default_factory=ModelSettings)
+    model_settings: ModelSettings | OpenRouterModelSettings = Field(default_factory=ModelSettings)
     sandbox: SandboxSettings = Field(default_factory=SandboxSettings)
     run: RunSettings = Field(default_factory=RunSettings)

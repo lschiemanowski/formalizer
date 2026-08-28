@@ -177,6 +177,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
         "temperature": None,
         "top_p": None,
         "thinking": None,
+        "openrouter_provider": None,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}
     assert metadata["execution"] == {"max_concurrency": 1}
@@ -293,6 +294,8 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
             "low",
             "--temperature",
             "0.6",
+            "--openrouter-provider",
+            "novita",
         ]
     )
 
@@ -300,6 +303,11 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
     settings, metadata = received[0]
     assert settings.model_settings == {
         "max_tokens": 8192,
+        "openrouter_provider": {
+            "only": ["novita"],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+        },
         "temperature": 0.6,
         "thinking": "low",
     }
@@ -308,7 +316,40 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
         "temperature": 0.6,
         "top_p": None,
         "thinking": "low",
+        "openrouter_provider": {
+            "only": ["novita"],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+        },
     }
+
+
+def test_eval_cli_rejects_openrouter_provider_for_non_openrouter_model(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    dataset_path = tmp_path / "baseline.yaml"
+    dataset_path.write_text("name: baseline-v1\ncases: []\n", encoding="utf-8")
+    output_dir = tmp_path / "experiment"
+
+    exit_code = cli_module.main(
+        [
+            "--dataset",
+            str(dataset_path),
+            "--model",
+            "test:model",
+            "--name",
+            "invalid-routing",
+            "--output-dir",
+            str(output_dir),
+            "--openrouter-provider",
+            "novita",
+        ]
+    )
+
+    assert exit_code == 1
+    assert "--openrouter-provider requires an openrouter: model" in capsys.readouterr().err
+    assert not output_dir.exists()
 
 
 def test_eval_cli_selects_cases_and_records_filters(
@@ -769,6 +810,7 @@ def test_experiment_metadata_records_reproducibility_inputs(
         "temperature": None,
         "top_p": None,
         "thinking": None,
+        "openrouter_provider": None,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}
     assert metadata["execution"] == {"max_concurrency": 3}

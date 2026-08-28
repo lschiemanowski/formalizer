@@ -10,6 +10,7 @@ from pathlib import Path
 from subprocess import CalledProcessError, run
 
 from pydantic_ai import ModelSettings, UsageLimits
+from pydantic_ai.models.openrouter import OpenRouterModelSettings
 from pydantic_evals.reporting import EvaluationReport
 
 from formalizer.eval.artifacts import write_evaluation_report
@@ -72,6 +73,14 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--dataset", required=True, type=Path)
     parser.add_argument("--model", required=True)
+    parser.add_argument(
+        "--openrouter-provider",
+        type=_non_blank,
+        help=(
+            "Pin an OpenRouter downstream provider, disable provider fallbacks, and require "
+            "support for all requested model parameters."
+        ),
+    )
     parser.add_argument("--name", required=True, type=_non_blank)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--repeat", type=_positive_int, default=1)
@@ -160,7 +169,13 @@ def _has_execution_failures(
 
 
 def _model_settings(args: argparse.Namespace) -> ModelSettings:
-    model_settings = ModelSettings(max_tokens=args.max_tokens)
+    model_settings = OpenRouterModelSettings(max_tokens=args.max_tokens)
+    if args.openrouter_provider is not None:
+        model_settings["openrouter_provider"] = {
+            "only": [args.openrouter_provider],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+        }
     if args.thinking is not None:
         model_settings["thinking"] = args.thinking
     if args.temperature is not None:
@@ -238,6 +253,7 @@ def _experiment_metadata(
             "temperature": settings.model_settings.get("temperature"),
             "top_p": settings.model_settings.get("top_p"),
             "thinking": settings.model_settings.get("thinking"),
+            "openrouter_provider": settings.model_settings.get("openrouter_provider"),
         },
         "retry_policy": {
             "infrastructure_retries": infrastructure_retries,
@@ -260,6 +276,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
 
     try:
+        if args.openrouter_provider is not None and not args.model.startswith("openrouter:"):
+            raise ValueError("--openrouter-provider requires an openrouter: model")
+
         if args.output_dir.exists():
             raise FileExistsError(f"output directory already exists: {args.output_dir}")
 
