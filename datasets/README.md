@@ -135,6 +135,17 @@ matrix argument around leading principal submatrices and Schur complements.
 Reference proofs are used only as external curation oracles. The dataset contains the required
 definitions and `FormalizerProblem.Target`, but no solution lemmas or proof-specific scaffolding.
 
+## Baseline evaluation v1
+
+`baseline-eval-v1.yaml` is the first frozen model-comparison set. It copies the 12 validation
+cases from `basic-problems-v1.yaml` and the two medium validation cases from
+`challenge-problems-v1.yaml` exactly, for a total of 14 cases: 3 easy and 11 medium. It excludes
+the hard Sylvester-criterion context-stress problem.
+
+Do not expand this file in place after running the baseline. Additions belong in
+`baseline-eval-v2.yaml` so evaluations remain directly comparable without relying on case-filter
+metadata to reconstruct membership.
+
 Validate the current smoke dataset without making model requests:
 
 ```bash
@@ -154,6 +165,13 @@ Validate the challenge problems dataset contract and all trusted Lean targets:
 ```bash
 uv run pytest tests/eval/test_challenge_problems_dataset.py
 uv run pytest -m integration tests/eval/test_challenge_problems_dataset.py
+```
+
+Validate the frozen baseline dataset and its exact source copies:
+
+```bash
+uv run pytest tests/eval/test_baseline_eval_dataset.py
+uv run pytest -m integration tests/eval/test_baseline_eval_dataset.py
 ```
 
 Select cases for an evaluation by split, difficulty, or exact case name. Repeating one option
@@ -189,6 +207,25 @@ uv run formalizer-eval \
 ```
 
 The resolved budget and retry policy are recorded in the evaluation report metadata.
+
+Cases run sequentially by default. Use `--max-concurrency` to evaluate a bounded number of case
+attempts at once:
+
+```bash
+uv run formalizer-eval \
+  --dataset datasets/basic-problems-v1.yaml \
+  --model provider:model-name \
+  --name concurrent-pilot \
+  --output-dir runs/evals/concurrent-pilot \
+  --split validation \
+  --max-concurrency 2
+```
+
+The limit applies across cases and repetitions and is recorded under `execution` in the report
+metadata. Each concurrent case owns a persistent Loogle container and may start transient Lean
+containers, so higher values multiply local resource use and can trigger provider rate limits.
+Use the same concurrency for compared experiments; begin with 1 or 2 unless the host and provider
+have been tested at a higher value.
 
 By default, a case is retried at most twice after a transient provider connection failure, an HTTP
 408, 409, 425, 429, or 5xx response, or a Lean/Loogle infrastructure failure. Failed agent runs

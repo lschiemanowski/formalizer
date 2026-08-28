@@ -1,0 +1,400 @@
+name: baseline-eval-v1
+cases:
+  - name: basic-problems/problem-1
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {K V : Type*} [CommRing K] [AddCommGroup V] [Module K V]
+              (f : Module.End K V) (hf : IsNilpotent f),
+            IsUnit (1 - f)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_1
+        license: Apache-2.0
+
+  - name: basic-problems/problem-5
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [Fintype ι]
+              [CompleteSpace E]
+              (T : E →L[𝕜] E)
+              (b : OrthonormalBasis ι 𝕜 E)
+              (hb : ∀ i, ∃ μ : 𝕜, T (b i) = μ • b i),
+            IsStarNormal T
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: functional-analysis
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_5
+        license: Apache-2.0
+
+  - name: basic-problems/problem-6
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (n : ℕ),
+            (∑ k ∈ Finset.range (n + 1), k ^ 3) = ((n * (n + 1)) / 2) ^ 2
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: combinatorics
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_6
+        license: Apache-2.0
+
+  - name: basic-problems/problem-7
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [Field R] [Invertible (2 : R)] (n : ℕ) (A : Matrix (Fin n) (Fin n) R),
+            ∃! p : Matrix (Fin n) (Fin n) R × Matrix (Fin n) (Fin n) R,
+                Matrix.IsSymm p.1 ∧ p.2.transpose = -p.2 ∧ A = p.1 + p.2
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_7
+        license: Apache-2.0
+
+  - name: basic-problems/problem-8
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {G : Type*} [Group G] (h : ∀ g : G, g ^ 2 = 1),
+            ∀ a b : G, a * b = b * a
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: validation
+      domain: group-theory
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_8
+        license: Apache-2.0
+
+  - name: basic-problems/problem-15
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (n : ℕ),
+            (∑ k ∈ Finset.range (n + 1), Nat.choose n k) = 2 ^ n
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: validation
+      domain: combinatorics
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_15
+        license: Apache-2.0
+
+  - name: basic-problems/problem-36
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [PseudoMetricSpace X]
+              (u : Nat → X) (hu : CauchySeq u)
+              (phi : Nat → Nat) (hphi : StrictMono phi)
+              (l : X) (hsub : Tendsto (fun n => u (phi n)) atTop (nhds l)),
+            Tendsto u atTop (nhds l)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_36
+        license: Apache-2.0
+
+  - name: basic-problems/problem-47
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [MetricSpace X] (K A : Set X)
+              (hK : IsCompact K) (hA : IsClosed A) (hKA : Disjoint K A),
+            ∃ delta > 0, ∀ x ∈ K, ∀ y ∈ A, delta ≤ dist x y
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_47
+        license: Apache-2.0
+
+  - name: basic-problems/problem-50
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {X : Type*} [MetricSpace X] [CompactSpace X]
+              (f : X → X) (hf : Continuous f) (hfix : ∀ x : X, f x ≠ x),
+            ∃ eps > 0, ∀ x : X, eps ≤ dist x (f x)
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: topology
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_50
+        license: Apache-2.0
+
+  - name: basic-problems/problem-54
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ (f : Real → Real) (hf : ContinuousOn f (Set.Icc (0 : Real) 1))
+              (hint : ∫ x in (0 : Real)..1, f x = 0),
+            ∃ x ∈ Set.Icc (0 : Real) 1, f x = 0
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: analysis
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_54
+        license: Apache-2.0
+
+  - name: basic-problems/problem-64
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] [IsDomain R] [Finite R],
+            IsField R
+
+        end FormalizerProblem
+    metadata:
+      difficulty: easy
+      split: validation
+      domain: algebra
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_64
+        license: Apache-2.0
+
+  - name: basic-problems/problem-67
+    inputs:
+      source: |
+        import Mathlib
+
+        namespace FormalizerProblem
+
+        open Filter
+
+        open scoped Pointwise
+
+        def Target : Prop :=
+          ∀ {R : Type*} [CommRing R] [Nontrivial R] {n : Nat} (hn : 2 ≤ n),
+            ∃ A B : Matrix.GeneralLinearGroup (Fin n) R, A * B ≠ B * A
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Basic problems collection
+        source_id: problem_67
+        license: Apache-2.0
+
+  - name: challenge-problems/polya-enumeration
+    inputs:
+      source: |
+        import Mathlib.Data.Set.Card
+        import Mathlib.GroupTheory.GroupAction.Quotient
+
+        namespace FormalizerProblem
+
+        variable (G X C : Type*) [Group G] [MulAction G X]
+
+        instance coloringMulAction : MulAction G (X → C) where
+          smul g f := fun x => f (g⁻¹ • x)
+          one_smul f := by
+            funext x
+            change f ((1 : G)⁻¹ • x) = f x
+            rw [inv_one, one_smul]
+          mul_smul g h f := by
+            funext x
+            change f ((g * h)⁻¹ • x) = f (h⁻¹ • (g⁻¹ • x))
+            rw [mul_inv_rev, mul_smul]
+
+        noncomputable def fixedColoringCount [Fintype X] [Fintype C] (g : G) : ℕ :=
+          Nat.card {f : X → C // g • f = f}
+
+        noncomputable def coloringOrbitCount [Fintype X] [Fintype C] : ℕ :=
+          Nat.card (Quotient (MulAction.orbitRel G (X → C)))
+
+        def Target : Prop :=
+          ∀ (G X C : Type*) [Group G] [MulAction G X] [Fintype G] [Fintype X] [Fintype C],
+            coloringOrbitCount (G := G) (X := X) (C := C) * Fintype.card G =
+              ∑ g : G, fixedColoringCount (G := G) (X := X) (C := C) g
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: combinatorics
+      provenance:
+        origin: adapted
+        source: Challenge problems collection
+        source_id: problem_10
+        license: Apache-2.0
+
+  - name: challenge-problems/majorization
+    inputs:
+      source: |
+        import Mathlib.Analysis.Convex.Birkhoff
+
+        namespace FormalizerProblem
+
+        open Matrix Set
+
+        def InPermutationConvexHull {n : Type*} [Fintype n] [DecidableEq n]
+            (x y : n → ℝ) : Prop :=
+          x ∈ convexHull ℝ {z : n → ℝ | ∃ σ : Equiv.Perm n, z = fun i => y (σ i)}
+
+        def InDoublyStochasticImage {n : Type*} [Fintype n] [DecidableEq n]
+            (x y : n → ℝ) : Prop :=
+          ∃ M : Matrix n n ℝ, M ∈ doublyStochastic ℝ n ∧ M *ᵥ y = x
+
+        def Target : Prop :=
+          ∀ {n : Type*} [Fintype n] [DecidableEq n] (x y : n → ℝ),
+            InPermutationConvexHull x y ↔ InDoublyStochasticImage x y
+
+        end FormalizerProblem
+    metadata:
+      difficulty: medium
+      split: validation
+      domain: linear-algebra
+      provenance:
+        origin: adapted
+        source: Challenge problems collection
+        source_id: problem_8
+        license: Apache-2.0

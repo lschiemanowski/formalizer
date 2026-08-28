@@ -211,6 +211,106 @@ async def test_dataset_evaluation_propagates_cancellation(
         )
 
 
+async def test_dataset_evaluation_respects_max_concurrency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(model_name="test:model")
+    active = 0
+    peak_active = 0
+    two_started = asyncio.Event()
+    accepted_check = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+
+    async def overlapping_formalizer(
+        problem: FormalizationProblem,
+        received_settings: Settings,
+    ) -> object:
+        nonlocal active, peak_active
+        assert received_settings is settings
+        active += 1
+        peak_active = max(peak_active, active)
+        if active == 2:
+            two_started.set()
+        try:
+            await asyncio.wait_for(two_started.wait(), timeout=0.5)
+            return SimpleNamespace(
+                run_id=f"run-{id(problem)}",
+                output=Submission(code="accepted", check=accepted_check),
+            )
+        finally:
+            active -= 1
+
+    monkeypatch.setattr(runner_module, "formalize", overlapping_formalizer)
+    dataset = Dataset[FormalizationProblem, EvalOutput, ProblemMetadata](
+        name="concurrent",
+        cases=[
+            Case(name="first", inputs=ACCEPTED_PROBLEM),
+            Case(name="second", inputs=REJECTED_PROBLEM),
+            Case(name="third", inputs=FAILING_PROBLEM),
+        ],
+        evaluators=[LeanVerified()],
+    )
+
+    report = await evaluate_dataset(
+        dataset,
+        settings,
+        progress=False,
+        max_concurrency=2,
+    )
+
+    assert peak_active == 2
+    assert not report.failures
+    assert {case.name for case in report.cases} == {"first", "second", "third"}
+
+
+async def test_dataset_evaluation_rejects_nonpositive_max_concurrency() -> None:
+    dataset = Dataset[FormalizationProblem, EvalOutput, ProblemMetadata](
+        name="invalid-concurrency",
+        cases=[Case(name="accepted", inputs=ACCEPTED_PROBLEM)],
+    )
+
+    with pytest.raises(ValueError, match="max_concurrency"):
+        await evaluate_dataset(
+            dataset,
+            Settings(model_name="test:model"),
+            progress=False,
+            max_concurrency=0,
+        )
+
+
+async def test_concurrent_dataset_evaluation_propagates_cancellation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    async def cancel_formalizer(
+        problem: FormalizationProblem,
+        received_settings: Settings,
+    ) -> object:
+        nonlocal calls
+        calls += 1
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(runner_module, "formalize", cancel_formalizer)
+    dataset = Dataset[FormalizationProblem, EvalOutput, ProblemMetadata](
+        name="concurrently-cancelled",
+        cases=[
+            Case(name="first", inputs=ACCEPTED_PROBLEM),
+            Case(name="second", inputs=REJECTED_PROBLEM),
+            Case(name="queued", inputs=FAILING_PROBLEM),
+        ],
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await evaluate_dataset(
+            dataset,
+            Settings(model_name="test:model"),
+            progress=False,
+            max_concurrency=2,
+        )
+
+    assert calls <= 2
+
+
 @pytest.mark.parametrize(
     ("error", "expected"),
     [

@@ -66,9 +66,13 @@ async def evaluate_dataset(
     name: str | None = None,
     progress: bool = True,
     repeat: int = 1,
+    max_concurrency: int = 1,
     infrastructure_retries: int = 0,
     metadata: dict[str, Any] | None = None,
 ) -> EvaluationReport[FormalizationProblem, EvalOutput, ProblemMetadata]:
+    if max_concurrency < 1:
+        raise ValueError("max_concurrency must be at least 1")
+
     formalizer_task = create_formalizer_task(settings)
     cancelled = False
 
@@ -85,7 +89,7 @@ async def evaluate_dataset(
     report = await dataset.evaluate(
         tracked_task,
         name=name,
-        max_concurrency=1,
+        max_concurrency=max_concurrency,
         progress=progress,
         repeat=repeat,
         retry_task=_infrastructure_retry_config(infrastructure_retries),

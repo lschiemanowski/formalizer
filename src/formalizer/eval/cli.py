@@ -59,6 +59,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--repeat", type=_positive_int, default=1)
     parser.add_argument(
+        "--max-concurrency",
+        type=_positive_int,
+        default=1,
+        help="Maximum number of case attempts evaluated concurrently.",
+    )
+    parser.add_argument(
         "--max-tokens",
         type=_positive_int,
         default=DEFAULT_MAX_TOKENS,
@@ -167,6 +173,7 @@ def _experiment_metadata(
     repeat: int,
     selection: dict[str, object],
     infrastructure_retries: int,
+    max_concurrency: int,
 ) -> dict[str, object]:
     git_commit, git_dirty = _git_provenance()
     return {
@@ -184,6 +191,9 @@ def _experiment_metadata(
         },
         "retry_policy": {
             "infrastructure_retries": infrastructure_retries,
+        },
+        "execution": {
+            "max_concurrency": max_concurrency,
         },
         "started_at": datetime.now(UTC).isoformat(),
         "formalizer_version": version("formalizer"),
@@ -238,6 +248,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             repeat=args.repeat,
             selection=selection,
             infrastructure_retries=args.infrastructure_retries,
+            max_concurrency=args.max_concurrency,
         )
         args.output_dir.mkdir(parents=True)
 
@@ -251,6 +262,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 settings,
                 name=args.name,
                 repeat=args.repeat,
+                max_concurrency=args.max_concurrency,
                 infrastructure_retries=args.infrastructure_retries,
                 metadata=metadata,
             )

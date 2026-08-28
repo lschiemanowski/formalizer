@@ -57,7 +57,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     report = FakeReport()
     loaded_paths: list[Path] = []
     logfire_calls = 0
-    evaluation_calls: list[tuple[FakeDataset, Settings, str, int, int, dict[str, object]]] = []
+    evaluation_calls: list[tuple[FakeDataset, Settings, str, int, int, int, dict[str, object]]] = []
     persisted_reports: list[tuple[Path, FakeReport]] = []
 
     class FakeDatasetType:
@@ -76,11 +76,20 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
         *,
         name: str,
         repeat: int,
+        max_concurrency: int,
         infrastructure_retries: int,
         metadata: dict[str, object],
     ) -> FakeReport:
         evaluation_calls.append(
-            (received_dataset, settings, name, repeat, infrastructure_retries, metadata)
+            (
+                received_dataset,
+                settings,
+                name,
+                repeat,
+                max_concurrency,
+                infrastructure_retries,
+                metadata,
+            )
         )
         return report
 
@@ -114,7 +123,15 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     assert isinstance(dataset.evaluators[0], LeanVerified)
     assert logfire_calls == 1
     assert len(evaluation_calls) == 1
-    received_dataset, settings, name, repeat, infrastructure_retries, metadata = evaluation_calls[0]
+    (
+        received_dataset,
+        settings,
+        name,
+        repeat,
+        max_concurrency,
+        infrastructure_retries,
+        metadata,
+    ) = evaluation_calls[0]
     assert received_dataset is dataset
     assert settings.model_name == "test:model"
     assert settings.model_settings == {"max_tokens": 8192}
@@ -124,6 +141,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     assert settings.run.usage_limits.total_tokens_limit == 1_000_000
     assert name == "baseline-deepseek"
     assert repeat == 3
+    assert max_concurrency == 1
     assert infrastructure_retries == 2
     assert metadata["model_name"] == "test:model"
     assert metadata["dataset_name"] == "baseline-v1"
@@ -142,6 +160,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
         "total_tokens_limit": 1_000_000,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}
+    assert metadata["execution"] == {"max_concurrency": 1}
     assert persisted_reports == [(output_dir / "report.json", report)]
     assert report.printed
 
@@ -154,7 +173,7 @@ def test_eval_cli_applies_and_records_budget_overrides(
     dataset_path.write_text("name: baseline-v1\ncases: []\n", encoding="utf-8")
     output_dir = tmp_path / "experiment"
     dataset = FakeDataset()
-    received: list[tuple[Settings, int, dict[str, object]]] = []
+    received: list[tuple[Settings, int, int, dict[str, object]]] = []
 
     async def fake_evaluate_dataset(
         received_dataset: FakeDataset,
@@ -162,10 +181,11 @@ def test_eval_cli_applies_and_records_budget_overrides(
         *,
         name: str,
         repeat: int,
+        max_concurrency: int,
         infrastructure_retries: int,
         metadata: dict[str, object],
     ) -> FakeReport:
-        received.append((settings, infrastructure_retries, metadata))
+        received.append((settings, max_concurrency, infrastructure_retries, metadata))
         return FakeReport()
 
     monkeypatch.setattr(cli_module, "load_formalizer_dataset", lambda path: dataset)
@@ -192,15 +212,18 @@ def test_eval_cli_applies_and_records_budget_overrides(
             "150000",
             "--infrastructure-retries",
             "0",
+            "--max-concurrency",
+            "3",
         ]
     )
 
     assert exit_code == 0
-    settings, infrastructure_retries, metadata = received[0]
+    settings, max_concurrency, infrastructure_retries, metadata = received[0]
     assert settings.model_settings == {"max_tokens": 4096}
     assert settings.run.usage_limits.request_limit == 12
     assert settings.run.usage_limits.output_tokens_limit == 20_000
     assert settings.run.usage_limits.total_tokens_limit == 150_000
+    assert max_concurrency == 3
     assert infrastructure_retries == 0
     assert metadata["budget"] == {
         "max_tokens": 4096,
@@ -209,6 +232,7 @@ def test_eval_cli_applies_and_records_budget_overrides(
         "total_tokens_limit": 150_000,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 0}
+    assert metadata["execution"] == {"max_concurrency": 3}
 
 
 def test_eval_cli_selects_cases_and_records_filters(
@@ -241,10 +265,12 @@ def test_eval_cli_selects_cases_and_records_filters(
         *,
         name: str,
         repeat: int,
+        max_concurrency: int,
         infrastructure_retries: int,
         metadata: dict[str, object],
     ) -> FakeReport:
         assert received_dataset is dataset
+        assert max_concurrency == 1
         assert infrastructure_retries == 2
         recorded_metadata.append(metadata)
         return report
@@ -513,6 +539,26 @@ def test_eval_cli_rejects_negative_infrastructure_retries() -> None:
     assert exc_info.value.code == 2
 
 
+def test_eval_cli_rejects_nonpositive_max_concurrency() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        cli_module.main(
+            [
+                "--dataset",
+                "baseline.yaml",
+                "--model",
+                "test:model",
+                "--name",
+                "baseline-deepseek",
+                "--output-dir",
+                "experiment",
+                "--max-concurrency",
+                "0",
+            ]
+        )
+
+    assert exc_info.value.code == 2
+
+
 def test_eval_cli_refuses_to_reuse_an_experiment_directory(
     capsys: pytest.CaptureFixture[str],
     tmp_path: Path,
@@ -560,6 +606,7 @@ def test_experiment_metadata_records_reproducibility_inputs(
             "selected_case_count": 3,
         },
         infrastructure_retries=2,
+        max_concurrency=3,
     )
 
     assert metadata["model_name"] == "test:model"
@@ -589,3 +636,4 @@ def test_experiment_metadata_records_reproducibility_inputs(
         "total_tokens_limit": None,
     }
     assert metadata["retry_policy"] == {"infrastructure_retries": 2}
+    assert metadata["execution"] == {"max_concurrency": 3}
