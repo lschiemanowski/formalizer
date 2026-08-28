@@ -56,6 +56,7 @@ async def test_docker_backed_run_uses_tools_and_persists_verified_artifacts(
         assert {tool.name for tool in agent_info.function_tools} == {
             "lean_execute",
             "mathlib_search",
+            "save",
         }
         assert [tool.name for tool in agent_info.output_tools] == ["final_submission"]
 
