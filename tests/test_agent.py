@@ -13,7 +13,12 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from formalizer.agent import AgentDependencies, create_agent
 from formalizer.lean import DeletedLeanFile, LeanResult, LeanWorkspace, SavedLeanFile
-from formalizer.search import SearchHit, SearchResult
+from formalizer.search import (
+    InvalidSearchQuery,
+    SearchHit,
+    SearchInfrastructureError,
+    SearchResult,
+)
 
 VALID_CODE = """import Mathlib
 
@@ -57,6 +62,16 @@ class FakeSearchBackend:
     async def search(self, query: str, *, max_results: int = 10) -> SearchResult:
         self.queries.append((query, max_results))
         return next(self._results)
+
+
+class FailingSearchBackend:
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+        self.queries: list[tuple[str, int]] = []
+
+    async def search(self, query: str, *, max_results: int = 10) -> SearchResult:
+        self.queries.append((query, max_results))
+        raise self._error
 
 
 def final_submission_response(code: str) -> ModelResponse:
@@ -421,6 +436,92 @@ async def test_mathlib_search_rejects_result_limits_outside_agent_bounds(
     assert model_calls == 2
     assert result.output.code == VALID_CODE
     assert result.output.check.accepted
+
+
+async def test_mathlib_search_invalid_query_asks_model_to_retry() -> None:
+    invalid_query = "Nat.add_comm\nNat.mul_comm"
+    diagnostic = "Search query must contain exactly one line"
+    search_backend = FailingSearchBackend(InvalidSearchQuery(diagnostic))
+    checker = FakeLeanChecker([LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)])
+    model_calls = 0
+
+    async def invalid_search_then_submit(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        nonlocal model_calls
+        model_calls += 1
+
+        if model_calls == 1:
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="mathlib_search",
+                        args={"query": invalid_query},
+                    )
+                ]
+            )
+
+        retry_prompts = [
+            part
+            for message in messages
+            for part in message.parts
+            if isinstance(part, RetryPromptPart) and part.tool_name == "mathlib_search"
+        ]
+        assert [part.content for part in retry_prompts] == [diagnostic]
+        assert agent_info.function_tools
+        return final_submission_response(VALID_CODE)
+
+    agent = create_agent(FunctionModel(invalid_search_then_submit))
+
+    result = await agent.run(
+        "Prove that addition of natural numbers is commutative.",
+        deps=AgentDependencies(
+            lean_checker=checker,
+            search_backend=search_backend,
+        ),
+    )
+
+    assert model_calls == 2
+    assert search_backend.queries == [(invalid_query, 10)]
+    assert result.output.check.accepted
+
+
+async def test_mathlib_search_infrastructure_error_is_not_a_model_retry() -> None:
+    search_backend = FailingSearchBackend(SearchInfrastructureError("Loogle unavailable"))
+    checker = FakeLeanChecker([])
+    model_calls = 0
+
+    async def search_once(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        nonlocal model_calls
+        model_calls += 1
+        assert messages
+        assert agent_info.function_tools
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="mathlib_search",
+                    args={"query": "Nat.add_comm"},
+                )
+            ]
+        )
+
+    agent = create_agent(FunctionModel(search_once))
+
+    with pytest.raises(SearchInfrastructureError, match="Loogle unavailable"):
+        await agent.run(
+            "Prove that addition of natural numbers is commutative.",
+            deps=AgentDependencies(
+                lean_checker=checker,
+                search_backend=search_backend,
+            ),
+        )
+
+    assert model_calls == 1
+    assert search_backend.queries == [("Nat.add_comm", 10)]
 
 
 async def test_agent_applies_configured_model_settings() -> None:

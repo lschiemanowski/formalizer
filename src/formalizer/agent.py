@@ -14,7 +14,7 @@ from formalizer.lean import (
     SavedLeanFile,
 )
 from formalizer.problem import FormalizationProblem
-from formalizer.search import SearchBackend, SearchResult
+from formalizer.search import InvalidSearchQuery, SearchBackend, SearchResult
 
 _INSTRUCTIONS = """\
 You are a Lean 4 theorem-proving agent working with Mathlib.
@@ -47,8 +47,9 @@ FormalizerProblem.Target. Merely compiling some other theorem or example does no
 You have five tools:
 
 - mathlib_search searches Mathlib for relevant declarations and returns matching names, types,
-  modules, and documentation. It returns at most 10 results by default; you may request between 1
-  and 100 results when a broader or narrower result set would help.
+  modules, and documentation. Its query must be one nonblank line. It returns at most 10 results by
+  default; you may request between 1 and 100 results when a broader or narrower result set would
+  help.
 
 - save stores an auxiliary Lean file for the rest of the run. Give it a relative filename such as
   `Sylvester/Blocks.lean`; the resulting module is `FormalizerWorkspace.Sylvester.Blocks`. Saved
@@ -122,8 +123,11 @@ async def mathlib_search(
     query: str,
     max_results: Annotated[int, Field(ge=1, le=100)] = 10,
 ) -> SearchResult:
-    """Search Mathlib declarations without ending the run."""
-    return await ctx.deps.search_backend.search(query, max_results=max_results)
+    """Search Mathlib declarations using one nonblank query line without ending the run."""
+    try:
+        return await ctx.deps.search_backend.search(query, max_results=max_results)
+    except InvalidSearchQuery as error:
+        raise ModelRetry(str(error)) from error
 
 
 async def save(
