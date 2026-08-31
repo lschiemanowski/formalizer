@@ -1,6 +1,7 @@
 import asyncio
 import json
 from collections.abc import Mapping
+from decimal import Decimal
 from pathlib import Path
 from types import TracebackType
 from typing import Self
@@ -18,6 +19,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.usage import RequestUsage
 
 import formalizer.run as run_module
 from formalizer.agent import AgentDependencies, create_agent
@@ -155,7 +157,15 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
                     tool_name="final_submission",
                     args={"code": VALID_CODE},
                 )
-            ]
+            ],
+            usage=RequestUsage(
+                input_tokens=120,
+                cache_read_tokens=80,
+                output_tokens=15,
+                details={"reasoning_tokens": 4},
+                cost=Decimal("0.012"),
+            ),
+            provider_details={"cost": 0.01},
         )
 
     result = await run_formalizer(
@@ -184,6 +194,15 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
     assert manifest.run_id == run_id
     assert manifest.problem == PROBLEM
     assert manifest.status == "verified"
+    assert manifest.usage.model_responses == 1
+    assert manifest.usage.input_tokens == 120
+    assert manifest.usage.cache_read_tokens == 80
+    assert manifest.usage.output_tokens == 15
+    assert manifest.usage.reasoning_tokens == 4
+    assert manifest.usage.pydantic_estimated_cost_usd == Decimal("0.012")
+    assert manifest.usage.pydantic_costed_responses == 1
+    assert manifest.usage.provider_reported_cost_usd == Decimal("0.01")
+    assert manifest.usage.provider_costed_responses == 1
     assert manifest.verification == checker.result
     assert manifest.started_at <= manifest.finished_at
     assert (run_dir / "final.lean").read_text() == VALID_CODE
@@ -211,7 +230,13 @@ async def test_rejected_submission_writes_failed_run_artifacts(
                     tool_name="final_submission",
                     args={"code": INVALID_CODE},
                 )
-            ]
+            ],
+            usage=RequestUsage(
+                input_tokens=50,
+                output_tokens=7,
+                cost=Decimal("0.004"),
+            ),
+            provider_details={"cost": 0.0035},
         )
 
     result = await run_formalizer(
@@ -377,7 +402,13 @@ async def test_model_request_limit_is_enforced_and_persisted(
                     tool_name="lean_execute",
                     args={"code": VALID_CODE},
                 )
-            ]
+            ],
+            usage=RequestUsage(
+                input_tokens=50,
+                output_tokens=7,
+                cost=Decimal("0.004"),
+            ),
+            provider_details={"cost": 0.0035},
         )
 
     with pytest.raises(UsageLimitExceeded):
@@ -421,6 +452,18 @@ async def test_model_request_limit_is_enforced_and_persisted(
     ]
     assert manifest["status"] == "failed"
     assert manifest["error_type"] == "UsageLimitExceeded"
+    assert manifest["usage"] == {
+        "model_responses": 1,
+        "input_tokens": 50,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 0,
+        "output_tokens": 7,
+        "reasoning_tokens": 0,
+        "pydantic_estimated_cost_usd": "0.004",
+        "pydantic_costed_responses": 1,
+        "provider_reported_cost_usd": "0.0035",
+        "provider_costed_responses": 1,
+    }
     assert not (run_dir / "final.lean").exists()
 
 

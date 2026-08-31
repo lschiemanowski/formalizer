@@ -18,7 +18,7 @@ from formalizer.eval.datasets import load_formalizer_dataset, select_formalizer_
 from formalizer.eval.evaluators import LeanVerified
 from formalizer.eval.models import EvalOutput, ProblemMetadata
 from formalizer.eval.observability import configure_logfire
-from formalizer.eval.reporting import print_outcome_summary
+from formalizer.eval.reporting import ModelUsageAnalysis, print_outcome_summary
 from formalizer.eval.runner import evaluate_dataset
 from formalizer.problem import FormalizationProblem
 from formalizer.settings import RunSettings, Settings
@@ -336,6 +336,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             configure_logfire()
 
         dataset.add_evaluator(LeanVerified())
+        dataset.report_evaluators.append(ModelUsageAnalysis(runs_dir=settings.run.runs_dir))
         report = asyncio.run(
             evaluate_dataset(
                 dataset,

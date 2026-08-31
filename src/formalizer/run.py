@@ -1,18 +1,40 @@
 import asyncio
+from collections.abc import Sequence
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent, AgentRunResult, capture_run_messages
-from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter, ModelResponse
 
 from formalizer.agent import AgentDependencies, Submission, create_agent, problem_prompt
 from formalizer.lean import DockerLeanChecker, LeanResult, LeanWorkspace
 from formalizer.problem import FormalizationProblem
 from formalizer.search import DockerLoogleBackend
 from formalizer.settings import RunSettings, Settings
+
+
+class ModelUsage(BaseModel):
+    """Stable model usage recorded for one agent run."""
+
+    model_config = ConfigDict(
+        frozen=True,
+        extra="forbid",
+    )
+
+    model_responses: int = 0
+    input_tokens: int = 0
+    cache_write_tokens: int = 0
+    cache_read_tokens: int = 0
+    output_tokens: int = 0
+    reasoning_tokens: int = 0
+    pydantic_estimated_cost_usd: Decimal | None = None
+    pydantic_costed_responses: int = 0
+    provider_reported_cost_usd: Decimal | None = None
+    provider_costed_responses: int = 0
 
 
 class RunManifest(BaseModel):
@@ -29,6 +51,51 @@ class RunManifest(BaseModel):
     error_type: str | None = None
     error: str | None = None
     verification: LeanResult | None = None
+    usage: ModelUsage = Field(default_factory=ModelUsage)
+
+
+def _cost_decimal(value: Any) -> Decimal | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _reasoning_tokens(response: ModelResponse) -> int:
+    output_reasoning_tokens = getattr(response.usage, "output_reasoning_tokens", None)
+    if isinstance(output_reasoning_tokens, int):
+        return output_reasoning_tokens
+    return response.usage.details.get("reasoning_tokens", 0)
+
+
+def summarize_model_messages(messages: Sequence[ModelMessage]) -> ModelUsage:
+    responses = [message for message in messages if isinstance(message, ModelResponse)]
+    pydantic_costs = [
+        cost for response in responses if (cost := _cost_decimal(response.usage.cost)) is not None
+    ]
+    provider_costs = [
+        cost
+        for response in responses
+        if (cost := _cost_decimal((response.provider_details or {}).get("cost"))) is not None
+    ]
+    return ModelUsage(
+        model_responses=len(responses),
+        input_tokens=sum(response.usage.input_tokens for response in responses),
+        cache_write_tokens=sum(response.usage.cache_write_tokens for response in responses),
+        cache_read_tokens=sum(response.usage.cache_read_tokens for response in responses),
+        output_tokens=sum(response.usage.output_tokens for response in responses),
+        reasoning_tokens=sum(_reasoning_tokens(response) for response in responses),
+        pydantic_estimated_cost_usd=sum(pydantic_costs, start=Decimal(0))
+        if pydantic_costs
+        else None,
+        pydantic_costed_responses=len(pydantic_costs),
+        provider_reported_cost_usd=sum(provider_costs, start=Decimal(0))
+        if provider_costs
+        else None,
+        provider_costed_responses=len(provider_costs),
+    )
 
 
 def _write_manifest(run_dir: Path, manifest: RunManifest) -> None:
@@ -79,6 +146,7 @@ async def run_formalizer(
                 finished_at=datetime.now(UTC),
                 error_type=type(error).__name__,
                 error=str(error),
+                usage=summarize_model_messages(messages),
             )
             (run_dir / "messages.json").write_bytes(ModelMessagesTypeAdapter.dump_json(messages))
             _write_workspace(run_dir, deps.lean_workspace)
@@ -94,6 +162,7 @@ async def run_formalizer(
         started_at=started_at,
         finished_at=finished_at,
         verification=result.output.check,
+        usage=summarize_model_messages(result.all_messages()),
     )
 
     (run_dir / "messages.json").write_bytes(result.all_messages_json())

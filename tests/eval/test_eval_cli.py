@@ -8,6 +8,7 @@ import pytest
 
 import formalizer.eval.cli as cli_module
 from formalizer.eval import LeanVerified
+from formalizer.eval.reporting import ModelUsageAnalysis
 from formalizer.settings import Settings
 
 
@@ -16,6 +17,7 @@ class FakeDataset:
         self.name = "baseline-v1"
         self.cases = [FakeDatasetCase("logic/example")]
         self.evaluators: list[object] = []
+        self.report_evaluators: list[object] = []
 
     def add_evaluator(self, evaluator: object) -> None:
         self.evaluators.append(evaluator)
@@ -134,6 +136,9 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     assert loaded_paths == [dataset_path]
     assert len(dataset.evaluators) == 1
     assert isinstance(dataset.evaluators[0], LeanVerified)
+    assert len(dataset.report_evaluators) == 1
+    assert isinstance(dataset.report_evaluators[0], ModelUsageAnalysis)
+    assert dataset.report_evaluators[0].runs_dir == output_dir / "runs"
     assert logfire_calls == 1
     assert len(evaluation_calls) == 1
     (
