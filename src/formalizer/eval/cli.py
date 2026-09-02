@@ -29,6 +29,7 @@ DEFAULT_OUTPUT_TOKENS_LIMIT = 50_000
 DEFAULT_TOTAL_TOKENS_LIMIT = 1_000_000
 DEFAULT_INFRASTRUCTURE_RETRIES = 2
 THINKING_LEVELS = ("minimal", "low", "medium", "high", "xhigh")
+SERVICE_TIERS = ("auto", "default", "flex", "priority")
 
 
 def _positive_int(value: str) -> int:
@@ -109,6 +110,11 @@ def _parser() -> argparse.ArgumentParser:
         choices=THINKING_LEVELS,
         help="Thinking effort; omit to use the model/provider default.",
     )
+    parser.add_argument(
+        "--service-tier",
+        choices=SERVICE_TIERS,
+        help="Processing tier; omit to use the model/provider default.",
+    )
     sampling = parser.add_mutually_exclusive_group()
     sampling.add_argument(
         "--temperature",
@@ -186,6 +192,8 @@ def _model_settings(args: argparse.Namespace) -> ModelSettings:
         }
     if args.thinking is not None:
         model_settings["thinking"] = args.thinking
+    if args.service_tier is not None:
+        model_settings["service_tier"] = args.service_tier
     if args.tool_choice is not None:
         model_settings["tool_choice"] = args.tool_choice
     if args.temperature is not None:
@@ -263,6 +271,7 @@ def _experiment_metadata(
             "temperature": settings.model_settings.get("temperature"),
             "top_p": settings.model_settings.get("top_p"),
             "thinking": settings.model_settings.get("thinking"),
+            "service_tier": settings.model_settings.get("service_tier"),
             "tool_choice": settings.model_settings.get("tool_choice"),
             "openrouter_provider": settings.model_settings.get("openrouter_provider"),
         },

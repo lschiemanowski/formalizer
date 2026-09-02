@@ -1,0 +1,1300 @@
+name: formalizer-eval-v1
+cases:
+- name: formalizer-eval/relational-equijoin-symmetry
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\nstructure LeftRow (Key\
+      \ Value : Type) where\n  key : Key\n  value : Value\n  deriving DecidableEq\n\
+      structure RightRow (Key Value : Type) where\n  key : Key\n  value : Value\n\
+      \  deriving DecidableEq\nstructure Joined (Key Left Right : Type) where\n  key\
+      \ : Key\n  left : Left\n  right : Right\n  deriving DecidableEq\n\ndef join\
+      \ [DecidableEq Key] (left : List (LeftRow Key A)) (right : List (RightRow Key\
+      \ B)) :\n    List (Joined Key A B) :=\n  left.flatMap fun l => (right.filter\
+      \ (fun r => r.key = l.key)).map fun r => ⟨l.key, l.value, r.value⟩\n\ndef swapRows\
+      \ (rows : List (Joined Key A B)) : List (Joined Key B A) :=\n  rows.map fun\
+      \ row => ⟨row.key, row.right, row.left⟩\n\ndef Target : Prop := ∀ (Key A B :\
+      \ Type) [DecidableEq Key]\n    (left : List (LeftRow Key A)) (right : List (RightRow\
+      \ Key B)) joined,\n  (joined ∈ join left right ↔\n    ∃ l ∈ left, ∃ r ∈ right,\
+      \ l.key = r.key ∧ joined = ⟨l.key, l.value, r.value⟩) ∧\n  (join left right).length\
+      \ ≤ left.length * right.length ∧\n  (swapRows (join left right)).Perm\n    (join\
+      \ (right.map fun r => (⟨r.key, r.value⟩ : LeftRow Key B))\n      (left.map fun\
+      \ l => (⟨l.key, l.value⟩ : RightRow Key A))) ∧\n  (∀ row ∈ join left right,\
+      \ ∃ l ∈ left, row.key = l.key) ∧\n  (∀ row ∈ join left right, ∃ r ∈ right, row.key\
+      \ = r.key)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: relational-database-joins
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: relational-equijoin-symmetry
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/trie-compaction-correctness
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Trie (α :\
+      \ Type) where\n  | empty : Trie α\n  | node : Option α → Trie α → Trie α → Trie\
+      \ α\n  deriving DecidableEq\n\ndef Trie.lookup {α : Type} : List Bool → Trie\
+      \ α → Option α\n  | _, .empty => none\n  | [], .node value _ _ => value\n  |\
+      \ false :: key, .node _ left _ => lookup key left\n  | true :: key, .node _\
+      \ _ right => lookup key right\n\ndef Trie.nodes {α : Type} : Trie α → Nat\n\
+      \  | .empty => 0\n  | .node _ left right => 1 + left.nodes + right.nodes\n\n\
+      def Trie.compact {α : Type} : Trie α → Trie α\n  | .empty => .empty\n  | .node\
+      \ value left right =>\n      let left' := left.compact\n      let right' :=\
+      \ right.compact\n      match value, left', right' with\n      | none, .empty,\
+      \ .empty => .empty\n      | _, _, _ => .node value left' right'\n\ndef Target\
+      \ : Prop :=\n  ∀ (α : Type) (trie : Trie α) (key : List Bool),\n    trie.compact.lookup\
+      \ key = trie.lookup key ∧\n    trie.compact.compact = trie.compact ∧\n    trie.compact.nodes\
+      \ ≤ trie.nodes\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: trie-garbage-collection
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: trie-compaction-correctness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/bidirectional-typechecker-correctness
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Ty where |\
+      \ nat | arrow : Ty → Ty → Ty deriving DecidableEq\ninductive Term where\n  |\
+      \ var : Nat → Term\n  | numeral : Nat → Term\n  | app : Term → Term → Term\n\
+      \  | lam : Ty → Term → Term\n\ninductive HasType : List Ty → Term → Ty → Prop\
+      \ where\n  | var {context n ty} : context[n]? = some ty → HasType context (.var\
+      \ n) ty\n  | numeral {context n} : HasType context (.numeral n) .nat\n  | app\
+      \ {context f x a b} : HasType context f (.arrow a b) → HasType context x a →\n\
+      \      HasType context (.app f x) b\n  | lam {context a body b} : HasType (a\
+      \ :: context) body b →\n      HasType context (.lam a body) (.arrow a b)\n\n\
+      def infer : List Ty → Term → Option Ty\n  | context, .var n => context[n]?\n\
+      \  | _, .numeral _ => some .nat\n  | context, .app f x => do\n      let fTy\
+      \ ← infer context f\n      let xTy ← infer context x\n      match fTy with\n\
+      \      | .arrow a b => if xTy = a then some b else none\n      | .nat => none\n\
+      \  | context, .lam a body => (infer (a :: context) body).map (.arrow a)\n\n\
+      def Target : Prop :=\n  (∀ context term ty, infer context term = some ty ↔ HasType\
+      \ context term ty) ∧\n  (∀ context term left right, HasType context term left\
+      \ → HasType context term right → left = right)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: typechecker-metatheory
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: bidirectional-typechecker-correctness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/typed-language-substitution
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Ty where\n\
+      \  | base : Ty\n  | arrow : Ty → Ty → Ty\n  deriving DecidableEq\n\ninductive\
+      \ Term where\n  | var : Nat → Term\n  | app : Term → Term → Term\n  | lam :\
+      \ Ty → Term → Term\n\ninductive HasType : List Ty → Term → Ty → Prop where\n\
+      \  | var {context n ty} : context[n]? = some ty → HasType context (.var n) ty\n\
+      \  | app {context function argument input output} :\n      HasType context function\
+      \ (.arrow input output) → HasType context argument input →\n      HasType context\
+      \ (.app function argument) output\n  | lam {context input body output} : HasType\
+      \ (input :: context) body output →\n      HasType context (.lam input body)\
+      \ (.arrow input output)\n\ndef shift : Nat → Nat → Term → Term\n  | cutoff,\
+      \ amount, .var n => .var (if cutoff ≤ n then n + amount else n)\n  | cutoff,\
+      \ amount, .app a b => .app (shift cutoff amount a) (shift cutoff amount b)\n\
+      \  | cutoff, amount, .lam ty body => .lam ty (shift (cutoff + 1) amount body)\n\
+      \ndef substitute : Nat → Term → Term → Term\n  | index, replacement, .var n\
+      \ =>\n      if n = index then replacement else if index < n then .var (n - 1)\
+      \ else .var n\n  | index, replacement, .app a b =>\n      .app (substitute index\
+      \ replacement a) (substitute index replacement b)\n  | index, replacement, .lam\
+      \ ty body =>\n      .lam ty (substitute (index + 1) (shift 0 1 replacement)\
+      \ body)\n\ndef Target : Prop :=\n  ∀ context body argument input output,\n \
+      \   HasType (input :: context) body output → HasType context argument input\
+      \ →\n      HasType context (substitute 0 argument body) output\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: type-theoretic-substitution
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: typed-language-substitution
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/binary-search-tree-insertion
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Tree where\n\
+      \  | empty : Tree\n  | node : Tree → Int → Tree → Tree\n  deriving DecidableEq\n\
+      \ndef Tree.elements : Tree → List Int\n  | .empty => []\n  | .node left value\
+      \ right => left.elements ++ value :: right.elements\n\ndef Tree.insert (x :\
+      \ Int) : Tree → Tree\n  | .empty => .node .empty x .empty\n  | .node left value\
+      \ right =>\n      if x < value then .node (left.insert x) value right\n    \
+      \  else if value < x then .node left value (right.insert x)\n      else .node\
+      \ left value right\n\ninductive Ordered : Tree → Prop where\n  | empty : Ordered\
+      \ .empty\n  | node {left value right} : Ordered left → Ordered right →\n   \
+      \   (∀ x ∈ left.elements, x < value) → (∀ x ∈ right.elements, value < x) →\n\
+      \      Ordered (.node left value right)\n\ndef Target : Prop :=\n  ∀ tree x,\n\
+      \    Ordered tree →\n      Ordered (tree.insert x) ∧\n      (x ∈ (tree.insert\
+      \ x).elements) ∧\n      (∀ y, y ∈ (tree.insert x).elements ↔ y = x ∨ y ∈ tree.elements)\
+      \ ∧\n      (tree.insert x).insert x = tree.insert x\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: ordered-search-trees
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: binary-search-tree-insertion
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/canonical-run-compression
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ndef prependRun {α :\
+      \ Type} [DecidableEq α] (x : α) : List (α × Nat) → List (α × Nat)\n  | [] =>\
+      \ [(x, 1)]\n  | (y, n) :: rest => if x = y then (y, n + 1) :: rest else (x,\
+      \ 1) :: (y, n) :: rest\n\ndef compress {α : Type} [DecidableEq α] : List α →\
+      \ List (α × Nat)\n  | [] => []\n  | x :: xs => prependRun x (compress xs)\n\n\
+      def expand {α : Type} : List (α × Nat) → List α\n  | [] => []\n  | (x, n) ::\
+      \ rest => List.replicate n x ++ expand rest\n\ndef canonical {α : Type} [DecidableEq\
+      \ α] (runs : List (α × Nat)) : Prop :=\n  (∀ run ∈ runs, run.2 > 0) ∧ runs.Chain'\
+      \ (fun a b => a.1 ≠ b.1)\n\ndef encodedLength {α : Type} (runs : List (α × Nat))\
+      \ : Nat :=\n  (runs.map (fun run => run.2)).sum\n\ndef Target : Prop :=\n  ∀\
+      \ (α : Type) [DecidableEq α] (xs : List α),\n    expand (compress xs) = xs ∧\n\
+      \    canonical (compress xs) ∧\n    encodedLength (compress xs) = xs.length\
+      \ ∧\n    compress (expand (compress xs)) = compress xs\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: canonical-compression
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: canonical-run-compression
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/group-word-reduction-correctness
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Signed (G\
+      \ : Type) where\n  | positive : G → Signed G\n  | negative : G → Signed G\n\
+      \  deriving DecidableEq\n\ndef Signed.flip {G : Type} : Signed G → Signed G\n\
+      \  | .positive g => .negative g\n  | .negative g => .positive g\n\ndef Signed.value\
+      \ {G : Type} [Group G] : Signed G → G\n  | .positive g => g\n  | .negative g\
+      \ => g⁻¹\n\ndef evaluates {G : Type} [Group G] : List (Signed G) → G\n  | []\
+      \ => 1\n  | x :: xs => x.value * evaluates xs\n\ndef cancelPass {G : Type} [DecidableEq\
+      \ G] : List (Signed G) → List (Signed G)\n  | x :: y :: rest => if x.flip =\
+      \ y then cancelPass rest else x :: cancelPass (y :: rest)\n  | word => word\n\
+      \ndef normalize {G : Type} [DecidableEq G] (word : List (Signed G)) : List (Signed\
+      \ G) :=\n  Nat.iterate cancelPass (word.length + 1) word\n\ndef reduced {G :\
+      \ Type} [DecidableEq G] : List (Signed G) → Prop\n  | x :: y :: rest => x.flip\
+      \ ≠ y ∧ reduced (y :: rest)\n  | _ => True\n\ndef Target : Prop :=\n  ∀ (G :\
+      \ Type) [Group G] [DecidableEq G] (word : List (Signed G)),\n    evaluates (normalize\
+      \ word) = evaluates word ∧\n    reduced (normalize word) ∧\n    cancelPass (normalize\
+      \ word) = normalize word ∧\n    (normalize word).length ≤ word.length\n\nend\
+      \ FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: group-word-normalization
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: group-word-reduction-correctness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/expression-normalization-fixedpoint
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Expr where\n\
+      \  | constant : Int → Expr\n  | variable : Nat → Expr\n  | add : Expr → Expr\
+      \ → Expr\n  | multiply : Expr → Expr → Expr\n  deriving DecidableEq\n\ndef Expr.eval\
+      \ (state : Nat → Int) : Expr → Int\n  | .constant z => z\n  | .variable n =>\
+      \ state n\n  | .add a b => a.eval state + b.eval state\n  | .multiply a b =>\
+      \ a.eval state * b.eval state\n\ndef smartAdd : Expr → Expr → Expr\n  | .constant\
+      \ a, .constant b => .constant (a + b)\n  | .constant 0, b => b\n  | a, .constant\
+      \ 0 => a\n  | a, b => .add a b\n\ndef smartMultiply : Expr → Expr → Expr\n \
+      \ | .constant a, .constant b => .constant (a * b)\n  | .constant 0, _ | _, .constant\
+      \ 0 => .constant 0\n  | .constant 1, b => b\n  | a, .constant 1 => a\n  | a,\
+      \ b => .multiply a b\n\ndef Expr.normalize : Expr → Expr\n  | .constant z =>\
+      \ .constant z\n  | .variable n => .variable n\n  | .add a b => smartAdd a.normalize\
+      \ b.normalize\n  | .multiply a b => smartMultiply a.normalize b.normalize\n\n\
+      def Expr.nodes : Expr → Nat\n  | .constant _ | .variable _ => 1\n  | .add a\
+      \ b | .multiply a b => 1 + a.nodes + b.nodes\n\ndef Target : Prop :=\n  ∀ (expression\
+      \ : Expr) (state : Nat → Int),\n    Expr.eval state (Expr.normalize expression)\
+      \ = Expr.eval state expression ∧\n    Expr.normalize (Expr.normalize expression)\
+      \ = Expr.normalize expression ∧\n    Expr.nodes (Expr.normalize expression)\
+      \ ≤ Expr.nodes expression\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: canonical-expression-rewriting
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: expression-normalization-fixedpoint
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/stable-topk-selection-contract
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\nstructure Result where\n\
+      \  score : Nat\n  serial : Nat\n  deriving DecidableEq\n\ndef ahead (left right\
+      \ : Result) : Bool :=\n  left.score > right.score || (left.score = right.score\
+      \ && left.serial ≤ right.serial)\n\ndef ranked (results : List Result) : List\
+      \ Result := results.mergeSort ahead\ndef topK (limit : Nat) (results : List\
+      \ Result) : List Result := (ranked results).take limit\n\ndef Ordered (results\
+      \ : List Result) : Prop := results.Pairwise fun left right => ahead left right\n\
+      \ndef Target : Prop := ∀ limit results,\n  Ordered (topK limit results) ∧\n\
+      \  (topK limit results).length = min limit results.length ∧\n  (∀ result ∈ topK\
+      \ limit results, result ∈ results) ∧\n  (topK limit results ++ (ranked results).drop\
+      \ limit = ranked results) ∧\n  topK limit results <+: topK (limit + 1) results\n\
+      \nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: ranked-search-results
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: stable-topk-selection-contract
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/prefix-parser-encoder-adequacy
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Token where\
+      \ | open | close | atom : Nat → Token deriving DecidableEq\ninductive Tree where\
+      \ | atom : Nat → Tree | pair : Tree → Tree → Tree deriving DecidableEq\n\ndef\
+      \ Tree.encode : Tree → List Token\n  | .atom n => [.atom n]\n  | .pair left\
+      \ right => .open :: left.encode ++ right.encode ++ [.close]\n\ndef Tree.tokenCount\
+      \ : Tree → Nat\n  | .atom _ => 1\n  | .pair left right => 2 + left.tokenCount\
+      \ + right.tokenCount\n\ninductive ParsesOne : List Token → Tree → List Token\
+      \ → Prop where\n  | atom {n suffix} : ParsesOne (.atom n :: suffix) (.atom n)\
+      \ suffix\n  | pair {tokens afterLeft suffix left right} :\n      ParsesOne tokens\
+      \ left afterLeft →\n      ParsesOne afterLeft right (.close :: suffix) →\n \
+      \     ParsesOne (.open :: tokens) (.pair left right) suffix\n\ndef Target :\
+      \ Prop :=\n  (∀ tree suffix, ParsesOne (tree.encode ++ suffix) tree suffix)\
+      \ ∧\n  (∀ tokens tree suffix, ParsesOne tokens tree suffix →\n    tokens = tree.encode\
+      \ ++ suffix ∧ tokens.length = tree.tokenCount + suffix.length) ∧\n  (∀ tokens\
+      \ left right suffix,\n    ParsesOne tokens left suffix → ParsesOne tokens right\
+      \ suffix → left = right)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: verified-prefix-codecs
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: prefix-parser-encoder-adequacy
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/interval-abstract-interpretation
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\nstructure Interval where\n\
+      \  lo : Int\n  hi : Int\n\ndef Interval.contains (i : Interval) (x : Int) :\
+      \ Prop := i.lo ≤ x ∧ x ≤ i.hi\ndef Interval.add (a b : Interval) : Interval\
+      \ := ⟨a.lo + b.lo, a.hi + b.hi⟩\ndef Interval.negate (a : Interval) : Interval\
+      \ := ⟨-a.hi, -a.lo⟩\ndef Interval.multiply (a b : Interval) : Interval :=\n\
+      \  let p := a.lo * b.lo\n  let q := a.lo * b.hi\n  let r := a.hi * b.lo\n  let\
+      \ s := a.hi * b.hi\n  ⟨min (min p q) (min r s), max (max p q) (max r s)⟩\n\n\
+      inductive Expr where\n  | constant : Int → Expr\n  | variable : Nat → Expr\n\
+      \  | add : Expr → Expr → Expr\n  | multiply : Expr → Expr → Expr\n  | negate\
+      \ : Expr → Expr\n\ndef Expr.eval (ρ : Nat → Int) : Expr → Int\n  | .constant\
+      \ z => z\n  | .variable n => ρ n\n  | .add a b => a.eval ρ + b.eval ρ\n  | .multiply\
+      \ a b => a.eval ρ * b.eval ρ\n  | .negate a => -a.eval ρ\n\ndef Expr.abstract\
+      \ (ρ : Nat → Interval) : Expr → Interval\n  | .constant z => ⟨z, z⟩\n  | .variable\
+      \ n => ρ n\n  | .add a b => (a.abstract ρ).add (b.abstract ρ)\n  | .multiply\
+      \ a b => (a.abstract ρ).multiply (b.abstract ρ)\n  | .negate a => (a.abstract\
+      \ ρ).negate\n\ndef Target : Prop :=\n  ∀ (expression : Expr) (concrete : Nat\
+      \ → Int) (abstract : Nat → Interval),\n    (∀ n, (abstract n).contains (concrete\
+      \ n)) →\n      (expression.abstract abstract).contains (expression.eval concrete)\n\
+      \nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: abstract-interpretation
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: interval-abstract-interpretation
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/interval-union-insertion
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\nstructure Interval where\n\
+      \  lower : Nat\n  upper : Nat\n  deriving DecidableEq\n\ndef Interval.contains\
+      \ (interval : Interval) (point : Nat) : Bool :=\n  interval.lower ≤ point &&\
+      \ point ≤ interval.upper\n\ndef merge (left right : Interval) : Interval :=\n\
+      \  ⟨min left.lower right.lower, max left.upper right.upper⟩\n\ndef insertInterval\
+      \ (incoming : Interval) : List Interval → List Interval\n  | [] => [incoming]\n\
+      \  | current :: rest =>\n      if incoming.upper + 1 < current.lower then incoming\
+      \ :: current :: rest\n      else if current.upper + 1 < incoming.lower then\
+      \ current :: insertInterval incoming rest\n      else insertInterval (merge\
+      \ incoming current) rest\n\ndef covered (intervals : List Interval) (point :\
+      \ Nat) : Bool :=\n  intervals.any (fun interval => interval.contains point)\n\
+      \ndef Canonical : List Interval → Prop\n  | [] => True\n  | [interval] => interval.lower\
+      \ ≤ interval.upper\n  | first :: second :: rest =>\n      first.lower ≤ first.upper\
+      \ ∧ first.upper + 1 < second.lower ∧ Canonical (second :: rest)\n\ndef Target\
+      \ : Prop :=\n  ∀ incoming intervals point,\n    incoming.lower ≤ incoming.upper\
+      \ → Canonical intervals →\n      covered (insertInterval incoming intervals)\
+      \ point =\n        (incoming.contains point || covered intervals point) ∧\n\
+      \      (insertInterval incoming intervals).length ≤ intervals.length + 1 ∧\n\
+      \      Canonical (insertInterval incoming intervals) ∧\n      insertInterval\
+      \ incoming (insertInterval incoming intervals) = insertInterval incoming intervals\n\
+      \nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: canonical-interval-sets
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: interval-union-insertion
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/piece-table-split-preservation
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Buffer where\
+      \ | original | added deriving DecidableEq\n\nstructure Piece where\n  buffer\
+      \ : Buffer\n  offset : Nat\n  length : Nat\n  deriving DecidableEq\n\ndef Piece.render\
+      \ (original added : List Char) (piece : Piece) : List Char :=\n  let source\
+      \ := match piece.buffer with | .original => original | .added => added\n  (source.drop\
+      \ piece.offset).take piece.length\n\ndef Piece.split (piece : Piece) (position\
+      \ : Nat) : Piece × Piece :=\n  let firstLength := min position piece.length\n\
+      \  (⟨piece.buffer, piece.offset, firstLength⟩,\n   ⟨piece.buffer, piece.offset\
+      \ + firstLength, piece.length - firstLength⟩)\n\ndef Target : Prop :=\n  ∀ (original\
+      \ added : List Char) (piece : Piece) (position : Nat),\n    let pieces := piece.split\
+      \ position\n    pieces.1.render original added ++ pieces.2.render original added\
+      \ =\n      piece.render original added ∧\n    pieces.1.length + pieces.2.length\
+      \ = piece.length ∧\n    pieces.2.offset = piece.offset + pieces.1.length\n\n\
+      end FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: piece-table-editors
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: piece-table-split-preservation
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/banker-queue-normalization
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\nstructure Queue (α :\
+      \ Type) where\n  front : List α\n  back : List α\n  deriving DecidableEq\n\n\
+      def Queue.toList (queue : Queue α) : List α := queue.front ++ queue.back.reverse\n\
+      \ndef Queue.normalize (queue : Queue α) : Queue α :=\n  if queue.front = []\
+      \ then ⟨queue.back.reverse, []⟩ else queue\n\ndef Queue.enqueue (value : α)\
+      \ (queue : Queue α) : Queue α :=\n  queue.normalize |> fun ready => ⟨ready.front,\
+      \ value :: ready.back⟩\n\ndef Queue.dequeue (queue : Queue α) : Option (α ×\
+      \ Queue α) :=\n  match queue.normalize with\n  | ⟨[], _⟩ => none\n  | ⟨value\
+      \ :: rest, back⟩ => some (value, (Queue.mk rest back).normalize)\n\ndef Target\
+      \ : Prop :=\n  ∀ (α : Type) (queue : Queue α) (value : α),\n    queue.normalize.toList\
+      \ = queue.toList ∧\n    queue.normalize.normalize = queue.normalize ∧\n    (queue.enqueue\
+      \ value).toList = queue.toList ++ [value] ∧\n    (queue.dequeue = none ↔ queue.toList\
+      \ = []) ∧\n    (∀ head tail, queue.dequeue = some (head, tail) → queue.toList\
+      \ = head :: tail.toList)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: amortized-functional-queues
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: banker-queue-normalization
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/regular-derivative-correctness
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Regex (α :\
+      \ Type) where\n  | empty : Regex α\n  | epsilon : Regex α\n  | symbol : α →\
+      \ Regex α\n  | alt : Regex α → Regex α → Regex α\n  | seq : Regex α → Regex\
+      \ α → Regex α\n  | star : Regex α → Regex α\n\ninductive Matches {α : Type}\
+      \ : Regex α → List α → Prop where\n  | epsilon : Matches .epsilon []\n  | symbol\
+      \ (x) : Matches (.symbol x) [x]\n  | altLeft {a b w} : Matches a w → Matches\
+      \ (.alt a b) w\n  | altRight {a b w} : Matches b w → Matches (.alt a b) w\n\
+      \  | seq {a b u v} : Matches a u → Matches b v → Matches (.seq a b) (u ++ v)\n\
+      \  | starNil {a} : Matches (.star a) []\n  | starCons {a u v} : u ≠ [] → Matches\
+      \ a u → Matches (.star a) v →\n      Matches (.star a) (u ++ v)\n\ndef Regex.nullable\
+      \ : Regex α → Bool\n  | .empty | .symbol _ => false\n  | .epsilon | .star _\
+      \ => true\n  | .alt a b => a.nullable || b.nullable\n  | .seq a b => a.nullable\
+      \ && b.nullable\n\ndef Regex.derive [DecidableEq α] (x : α) : Regex α → Regex\
+      \ α\n  | .empty | .epsilon => .empty\n  | .symbol y => if x = y then .epsilon\
+      \ else .empty\n  | .alt a b => .alt (a.derive x) (b.derive x)\n  | .seq a b\
+      \ =>\n      if a.nullable then .alt (.seq (a.derive x) b) (b.derive x)\n   \
+      \   else .seq (a.derive x) b\n  | .star a => .seq (a.derive x) (.star a)\n\n\
+      def Target : Prop :=\n  ∀ (α : Type) [DecidableEq α] (regex : Regex α),\n  \
+      \  (regex.nullable = true ↔ Matches regex []) ∧\n    ∀ (x : α) (word : List\
+      \ α), Matches (regex.derive x) word ↔ Matches regex (x :: word)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: regular-language-derivatives
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: regular-derivative-correctness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/lsm-compaction-correctness
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\nabbrev Table (α β :\
+      \ Type) := List (α × β)\n\ndef lookup [DecidableEq α] (key : α) : Table α β\
+      \ → Option β\n  | [] => none\n  | (stored, value) :: rest => if stored = key\
+      \ then some value else lookup key rest\n\ndef compactAux [DecidableEq α] : Nat\
+      \ → Table α β → Table α β\n  | 0, _ => []\n  | _ + 1, [] => []\n  | fuel + 1,\
+      \ entry :: rest =>\n      entry :: compactAux fuel (rest.filter (fun later =>\
+      \ later.1 ≠ entry.1))\n\ndef compact [DecidableEq α] (table : Table α β) : Table\
+      \ α β :=\n  compactAux table.length table\n\ndef KeysUnique (table : Table α\
+      \ β) : Prop := table.map Prod.fst |>.Nodup\n\ndef Target : Prop :=\n  ∀ (α β\
+      \ : Type) [DecidableEq α] (table : Table α β) (key : α),\n    lookup key (compact\
+      \ table) = lookup key table ∧\n    KeysUnique (compact table) ∧\n    compact\
+      \ (compact table) = compact table ∧\n    (compact table).length ≤ table.length\n\
+      \nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: log-structured-storage
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: lsm-compaction-correctness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/lru-touch-invariants
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\nabbrev Entry := Nat\
+      \ × Int\n\ndef eraseKey (key : Nat) (entries : List Entry) : List Entry :=\n\
+      \  entries.filter fun entry => entry.1 != key\n\ndef touch (key : Nat) (value\
+      \ : Int) (entries : List Entry) : List Entry :=\n  (key, value) :: eraseKey\
+      \ key entries\n\ndef lookup (key : Nat) : List Entry → Option Int\n  | [] =>\
+      \ none\n  | entry :: rest => if entry.1 = key then some entry.2 else lookup\
+      \ key rest\n\ndef Target : Prop :=\n  ∀ entries key value,\n    lookup key (touch\
+      \ key value entries) = some value ∧\n    (∀ other, other ≠ key → lookup other\
+      \ (touch key value entries) = lookup other entries) ∧\n    (List.Nodup (entries.map\
+      \ Prod.fst) → List.Nodup ((touch key value entries).map Prod.fst)) ∧\n    (touch\
+      \ key value entries).length ≤ entries.length + 1\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: cache-replacement
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: lru-touch-invariants
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/quadtree-compression-correctness
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\ninductive Quad where |\
+      \ leaf : Bool → Quad | node : Quad → Quad → Quad → Quad → Quad\n  deriving DecidableEq\n\
+      \ninductive Quadrant where | nw | ne | sw | se\n\ndef Quad.sample : Quad → List\
+      \ Quadrant → Bool\n  | .leaf value, _ => value\n  | .node nw ne sw se, [] =>\
+      \ nw.sample []\n  | .node nw _ _ _, .nw :: rest => nw.sample rest\n  | .node\
+      \ _ ne _ _, .ne :: rest => ne.sample rest\n  | .node _ _ sw _, .sw :: rest =>\
+      \ sw.sample rest\n  | .node _ _ _ se, .se :: rest => se.sample rest\n\ndef Quad.nodes\
+      \ : Quad → Nat\n  | .leaf _ => 1\n  | .node nw ne sw se => 1 + nw.nodes + ne.nodes\
+      \ + sw.nodes + se.nodes\n\ndef Quad.compress : Quad → Quad\n  | leaf@(.leaf\
+      \ _) => leaf\n  | .node nw ne sw se =>\n      let nw' := nw.compress; let ne'\
+      \ := ne.compress\n      let sw' := sw.compress; let se' := se.compress\n   \
+      \   match nw', ne', sw', se' with\n      | .leaf a, .leaf b, .leaf c, .leaf\
+      \ d => if a = b ∧ b = c ∧ c = d then .leaf a else .node nw' ne' sw' se'\n  \
+      \    | _, _, _, _ => .node nw' ne' sw' se'\n\ndef Target : Prop := ∀ (tree :\
+      \ Quad) (address : List Quadrant),\n  tree.compress.sample address = tree.sample\
+      \ address ∧\n  tree.compress.compress = tree.compress ∧\n  tree.compress.nodes\
+      \ ≤ tree.nodes\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: lossless-quadtree-images
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: quadtree-compression-correctness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/segment-tree-point-update
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ninductive Tree where\
+      \ | leaf : Nat → Tree | node : Tree → Tree → Tree\n  deriving DecidableEq\n\n\
+      def Tree.flatten : Tree → List Nat\n  | .leaf value => [value]\n  | .node left\
+      \ right => left.flatten ++ right.flatten\n\ndef Tree.nodes : Tree → Nat\n  |\
+      \ .leaf _ => 1\n  | .node left right => left.nodes + right.nodes\n\ndef Tree.sum\
+      \ : Tree → Nat\n  | .leaf value => value\n  | .node left right => left.sum +\
+      \ right.sum\n\ndef Tree.lookup (tree : Tree) (index : Nat) : Nat := tree.flatten.getD\
+      \ index 0\n\ndef Tree.update : Tree → Nat → Nat → Tree\n  | .leaf _, 0, value\
+      \ => .leaf value\n  | leaf@(.leaf _), _ + 1, _ => leaf\n  | .node left right,\
+      \ index, value =>\n      if index < left.nodes\n      then .node (left.update\
+      \ index value) right\n      else .node left (right.update (index - left.nodes)\
+      \ value)\n\ndef Target : Prop :=\n  ∀ (tree : Tree) (index value : Nat),\n \
+      \   (tree.update index value).flatten = tree.flatten.set index value ∧\n   \
+      \ (tree.update index value).nodes = tree.nodes ∧\n    (tree.update index value).sum\
+      \ + tree.lookup index =\n      tree.sum + if index < tree.nodes then value else\
+      \ tree.lookup index\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: range-sum-segment-trees
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: segment-tree-point-update
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/mesh-boundary-toggle-laws
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\nabbrev Edge := Nat × Nat\n\
+      \ndef normalize (edge : Edge) : Edge :=\n  if edge.1 ≤ edge.2 then edge else\
+      \ (edge.2, edge.1)\n\ndef toggle (boundary : Finset Edge) (edge : Edge) : Finset\
+      \ Edge :=\n  let edge := normalize edge\n  if edge ∈ boundary then boundary.erase\
+      \ edge else insert edge boundary\n\ndef boundary (edges : List Edge) : Finset\
+      \ Edge := edges.foldl toggle ∅\n\ndef xor (left right : Finset Edge) : Finset\
+      \ Edge :=\n  (left \\ right) ∪ (right \\ left)\n\ndef Target : Prop := ∀ first\
+      \ second edge,\n  boundary (first ++ second) = xor (boundary first) (boundary\
+      \ second) ∧\n  boundary (first ++ first) = ∅ ∧\n  boundary [edge, (edge.2, edge.1)]\
+      \ = ∅ ∧\n  (boundary first).card ≤ first.length ∧\n  (edge ∈ boundary first\
+      \ → normalize edge ∈ boundary first)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: simplicial-mesh-boundaries
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: mesh-boundary-toggle-laws
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/state-transformer-laws
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ndef State (σ α : Type)\
+      \ := σ → α × σ\n\ndef pure {σ α : Type} (x : α) : State σ α := fun state =>\
+      \ (x, state)\n\ndef bind {σ α β : Type} (action : State σ α) (next : α → State\
+      \ σ β) : State σ β :=\n  fun state => let (value, state') := action state; next\
+      \ value state'\n\ndef get {σ : Type} : State σ σ := fun state => (state, state)\n\
+      def put {σ : Type} (newState : σ) : State σ Unit := fun _ => ((), newState)\n\
+      \ndef Target : Prop :=\n  ∀ (σ α β γ : Type) (x : α) (m : State σ α)\n    (f\
+      \ : α → State σ β) (g : β → State σ γ),\n    bind (pure x) f = f x ∧\n    bind\
+      \ m pure = m ∧\n    bind (bind m f) g = bind m (fun a => bind (f a) g) ∧\n \
+      \   bind (get (σ := σ))\n      (fun old => bind (put (σ := σ) old) (fun _ =>\
+      \ pure (σ := σ) old)) =\n      get (σ := σ)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: stateful-computation-laws
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: state-transformer-laws
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/ripple-carry-adder-correctness
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ndef bitValue (bit :\
+      \ Bool) : Nat := if bit then 1 else 0\n\ndef bitsValue : List Bool → Nat\n \
+      \ | [] => 0\n  | bit :: rest => bitValue bit + 2 * bitsValue rest\n\ndef fullAdder\
+      \ (left right carry : Bool) : Bool × Bool :=\n  let total := bitValue left +\
+      \ bitValue right + bitValue carry\n  (total % 2 = 1, total ≥ 2)\n\ndef addBits\
+      \ : List Bool → List Bool → Bool → List Bool\n  | [], [], carry => if carry\
+      \ then [true] else []\n  | left :: rest, [], carry =>\n      let result := fullAdder\
+      \ left false carry\n      result.1 :: addBits rest [] result.2\n  | [], right\
+      \ :: rest, carry =>\n      let result := fullAdder false right carry\n     \
+      \ result.1 :: addBits [] rest result.2\n  | left :: leftRest, right :: rightRest,\
+      \ carry =>\n      let result := fullAdder left right carry\n      result.1 ::\
+      \ addBits leftRest rightRest result.2\n\ndef Target : Prop :=\n  ∀ left right\
+      \ carry,\n    bitsValue (addBits left right carry) =\n      bitsValue left +\
+      \ bitsValue right + bitValue carry ∧\n    (addBits left right carry).length\
+      \ ≤ max left.length right.length + 1\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: bit-level-arithmetic
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: ripple-carry-adder-correctness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/streaming-summary-merge-laws
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\nstructure Summary where\n\
+      \  count : Nat\n  sum : Int\n  minimum : Option Int\n  maximum : Option Int\n\
+      \  deriving DecidableEq\n\ndef add (summary : Summary) (value : Int) : Summary\
+      \ :=\n  ⟨summary.count + 1, summary.sum + value,\n   some (summary.minimum.elim\
+      \ value (min value)),\n   some (summary.maximum.elim value (max value))⟩\n\n\
+      def summarize (values : List Int) : Summary := values.foldl add ⟨0, 0, none,\
+      \ none⟩\n\ndef combine (left right : Summary) : Summary :=\n  ⟨left.count +\
+      \ right.count, left.sum + right.sum,\n   match left.minimum, right.minimum with\n\
+      \   | none, other | other, none => other\n   | some a, some b => some (min a\
+      \ b),\n   match left.maximum, right.maximum with\n   | none, other | other,\
+      \ none => other\n   | some a, some b => some (max a b)⟩\n\ndef Target : Prop\
+      \ := ∀ values extra,\n  summarize (values ++ extra) = combine (summarize values)\
+      \ (summarize extra) ∧\n  (summarize values).count = values.length ∧\n  (summarize\
+      \ values).sum = values.sum ∧\n  ((summarize values).minimum = none ↔ values\
+      \ = []) ∧\n  ((summarize values).maximum = none ↔ values = [])\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: stream-processing-statistics
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: streaming-summary-merge-laws
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/weighted-distribution-bind-laws
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\nabbrev Distribution\
+      \ (α : Type) := List (α × Nat)\n\ndef mass (distribution : Distribution α) :\
+      \ Nat :=\n  (distribution.map Prod.snd).sum\n\ndef mapDistribution (function\
+      \ : α → β) (distribution : Distribution α) : Distribution β :=\n  distribution.map\
+      \ fun outcome => (function outcome.1, outcome.2)\n\ndef bindDistribution (distribution\
+      \ : Distribution α)\n    (kernel : α → Distribution β) : Distribution β :=\n\
+      \  distribution.flatMap fun outcome =>\n    (kernel outcome.1).map fun result\
+      \ => (result.1, outcome.2 * result.2)\n\ndef Target : Prop :=\n  ∀ (α β γ :\
+      \ Type) (distribution : Distribution α)\n    (function : α → β) (kernel : α\
+      \ → Distribution β) (next : β → Distribution γ) constant,\n    mass (mapDistribution\
+      \ function distribution) = mass distribution ∧\n    ((∀ value weight, (value,\
+      \ weight) ∈ distribution → mass (kernel value) = constant) →\n      mass (bindDistribution\
+      \ distribution kernel) = mass distribution * constant) ∧\n    bindDistribution\
+      \ (bindDistribution distribution kernel) next =\n      bindDistribution distribution\
+      \ (fun value => bindDistribution (kernel value) next)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: finite-weighted-distributions
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: weighted-distribution-bind-laws
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/symmetric-route-reversal
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ndef routeCost {α : Type}\
+      \ (weight : α → α → Nat) : List α → Nat\n  | [] | [_] => 0\n  | x :: y :: rest\
+      \ => weight x y + routeCost weight (y :: rest)\n\ndef Target : Prop :=\n  ∀\
+      \ (α : Type) (weight : α → α → Nat),\n    (∀ x y, weight x y = weight y x) →\n\
+      \    ∀ route : List α,\n      routeCost weight route.reverse = routeCost weight\
+      \ route\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: weighted-route-symmetry
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: symmetric-route-reversal
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/dead-store-elimination-soundness
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\ninductive Expr where\n\
+      \  | literal : Int → Expr\n  | variable : Nat → Expr\n  | add : Expr → Expr\
+      \ → Expr\n\ndef Expr.eval (store : Nat → Int) : Expr → Int\n  | .literal value\
+      \ => value\n  | .variable name => store name\n  | .add left right => left.eval\
+      \ store + right.eval store\n\ndef Expr.reads : Expr → Finset Nat\n  | .literal\
+      \ _ => ∅\n  | .variable name => {name}\n  | .add left right => left.reads ∪\
+      \ right.reads\n\nstructure Assign where\n  destination : Nat\n  expression :\
+      \ Expr\n\ndef run : (Nat → Int) → List Assign → Nat → Int\n  | store, [] =>\
+      \ store\n  | store, instruction :: rest =>\n      run (Function.update store\
+      \ instruction.destination (instruction.expression.eval store)) rest\n\ndef liveBefore\
+      \ : List Assign → Finset Nat → Finset Nat\n  | [], live => live\n  | instruction\
+      \ :: rest, live =>\n      let needed := liveBefore rest live\n      if instruction.destination\
+      \ ∈ needed then\n        (needed.erase instruction.destination) ∪ instruction.expression.reads\n\
+      \      else needed\n\ndef eliminate : List Assign → Finset Nat → List Assign\n\
+      \  | [], _ => []\n  | instruction :: rest, live =>\n      let needed := liveBefore\
+      \ rest live\n      if instruction.destination ∈ needed then\n        instruction\
+      \ :: eliminate rest live\n      else eliminate rest live\n\ndef AgreeOn (names\
+      \ : Finset Nat) (left right : Nat → Int) : Prop :=\n  ∀ name ∈ names, left name\
+      \ = right name\n\ndef Target : Prop := ∀ program live initial,\n  AgreeOn live\
+      \ (run initial (eliminate program live)) (run initial program) ∧\n  (eliminate\
+      \ program live).length ≤ program.length ∧\n  eliminate (eliminate program live)\
+      \ live = eliminate program live\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: straight-line-dataflow-optimization
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: dead-store-elimination-soundness
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/spreadsheet-copy-reference-laws
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\nstructure Reference where\n\
+      \  row : Int\n  column : Int\n  rowRelative : Bool\n  columnRelative : Bool\n\
+      \  deriving DecidableEq\n\ndef Reference.shift (rowOffset columnOffset : Int)\
+      \ (reference : Reference) : Reference :=\n  { reference with\n    row := if\
+      \ reference.rowRelative then reference.row + rowOffset else reference.row\n\
+      \    column := if reference.columnRelative then reference.column + columnOffset\
+      \ else reference.column }\n\ninductive Formula where\n  | literal : Int → Formula\n\
+      \  | reference : Reference → Formula\n  | add : Formula → Formula → Formula\n\
+      \  deriving DecidableEq\n\ndef Formula.shift (rowOffset columnOffset : Int)\
+      \ : Formula → Formula\n  | .literal value => .literal value\n  | .reference\
+      \ ref => .reference (ref.shift rowOffset columnOffset)\n  | .add left right\
+      \ => .add (left.shift rowOffset columnOffset) (right.shift rowOffset columnOffset)\n\
+      \ndef Target : Prop := ∀ (formula : Formula) (firstRow firstColumn secondRow\
+      \ secondColumn : Int),\n  (formula.shift firstRow firstColumn).shift secondRow\
+      \ secondColumn =\n    formula.shift (firstRow + secondRow) (firstColumn + secondColumn)\
+      \ ∧\n  formula.shift 0 0 = formula ∧\n  (formula.shift firstRow firstColumn).shift\
+      \ (-firstRow) (-firstColumn) = formula\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: spreadsheet-relative-references
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: spreadsheet-copy-reference-laws
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/round-robin-schedule-balance
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\ndef schedule (workers\
+      \ : List α) (requests : Nat) : List α :=\n  (List.range requests).filterMap\
+      \ fun index => workers[index % workers.length]?\n\ndef count [DecidableEq α]\
+      \ (worker : α) (assignments : List α) : Nat :=\n  (assignments.filter (· = worker)).length\n\
+      \ndef Target : Prop := ∀ (α : Type) [DecidableEq α]\n    (workers : List α)\
+      \ (requests : Nat) (worker : α),\n  workers ≠ [] → workers.Nodup → worker ∈\
+      \ workers →\n  (schedule workers requests).length = requests ∧\n  (∀ assigned\
+      \ ∈ schedule workers requests, assigned ∈ workers) ∧\n  requests / workers.length\
+      \ ≤ count worker (schedule workers requests) ∧\n  count worker (schedule workers\
+      \ requests) ≤ (requests + workers.length - 1) / workers.length ∧\n  (schedule\
+      \ workers (requests + workers.length)).take requests = schedule workers requests\n\
+      \nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: cyclic-request-distribution
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: round-robin-schedule-balance
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/arc-consistency-pruning
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\ndef pruneLeft [DecidableEq\
+      \ α] [DecidableEq β]\n    (relation : α → β → Bool) (left : Finset α) (right\
+      \ : Finset β) : Finset α :=\n  left.filter fun a => ∃ b ∈ right, relation a\
+      \ b = true\n\ndef pruneRight [DecidableEq α] [DecidableEq β]\n    (relation\
+      \ : α → β → Bool) (left : Finset α) (right : Finset β) : Finset β :=\n  right.filter\
+      \ fun b => ∃ a ∈ left, relation a b = true\n\ndef Target : Prop := ∀ (α β :\
+      \ Type) [DecidableEq α] [DecidableEq β]\n    (relation : α → β → Bool) left\
+      \ right a b,\n  (a ∈ left → b ∈ right → relation a b = true →\n    a ∈ pruneLeft\
+      \ relation left right ∧ b ∈ pruneRight relation left right) ∧\n  pruneLeft relation\
+      \ left right ⊆ left ∧\n  pruneRight relation left right ⊆ right ∧\n  pruneLeft\
+      \ relation (pruneLeft relation left right) right = pruneLeft relation left right\
+      \ ∧\n  pruneRight relation left (pruneRight relation left right) = pruneRight\
+      \ relation left right\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: finite-domain-constraint-propagation
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: arc-consistency-pruning
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/retry-state-machine-accounting
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\ninductive Outcome where\
+      \ | success | transient | permanent deriving DecidableEq\n\nstructure State\
+      \ where\n  attempts : Nat\n  completed : Bool\n  failed : Bool\n  deriving DecidableEq\n\
+      \ndef step (limit : Nat) (state : State) (outcome : Outcome) : State :=\n  if\
+      \ state.completed || state.failed then state else\n  match outcome with\n  |\
+      \ .success => { state with attempts := state.attempts + 1, completed := true\
+      \ }\n  | .permanent => { state with attempts := state.attempts + 1, failed :=\
+      \ true }\n  | .transient =>\n      let attempts := state.attempts + 1\n    \
+      \  { state with attempts, failed := limit ≤ attempts }\n\ndef run (limit : Nat)\
+      \ (initial : State) (outcomes : List Outcome) : State :=\n  outcomes.foldl (step\
+      \ limit) initial\n\ndef Terminal (state : State) : Prop := state.completed =\
+      \ true ∨ state.failed = true\n\ndef Target : Prop := ∀ limit initial outcomes,\n\
+      \  initial.attempts ≤ limit →\n  let final := run limit initial outcomes\n \
+      \ (initial.completed = true → final = initial) ∧\n  final.attempts ≤ initial.attempts\
+      \ + outcomes.length ∧\n  (final.completed = true → final.failed = initial.failed)\
+      \ ∧\n  (limit ≤ final.attempts → Terminal final ∨ outcomes = []) ∧\n  (Terminal\
+      \ final → run limit final outcomes = final)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: fault-tolerant-request-retries
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: retry-state-machine-accounting
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/xor-parity-erasure-recovery
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ndef xorWord (left right\
+      \ : List Bool) : List Bool :=\n  List.zipWith xor left right\n\ndef parity (width\
+      \ : Nat) (words : List (List Bool)) : List Bool :=\n  words.foldl xorWord (List.replicate\
+      \ width false)\n\ndef EqualWidth (width : Nat) (words : List (List Bool)) :\
+      \ Prop :=\n  ∀ word ∈ words, word.length = width\n\ndef Target : Prop :=\n \
+      \ ∀ width missing others,\n    missing.length = width → EqualWidth width others\
+      \ →\n      xorWord (parity width (missing :: others)) (parity width others)\
+      \ = missing ∧\n      (parity width (others ++ [missing])).length = width ∧\n\
+      \      parity width (others ++ [missing]) = parity width (missing :: others)\n\
+      \nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: erasure-parity
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: xor-parity-erasure-recovery
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/call-auction-bookkeeping
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\nstructure Clearing where\n\
+      \  fills : List Nat\n  buyRemainders : List Nat\n  sellRemainders : List Nat\n\
+      \ndef clear : List Nat → List Nat → Clearing\n  | [], sells => ⟨[], [], sells⟩\n\
+      \  | buys, [] => ⟨[], buys, []⟩\n  | buy :: buys, sell :: sells =>\n      let\
+      \ rest := clear buys sells\n      let filled := min buy sell\n      ⟨filled\
+      \ :: rest.fills,\n       (buy - filled) :: rest.buyRemainders,\n       (sell\
+      \ - filled) :: rest.sellRemainders⟩\n\ndef volume (orders : List Nat) : Nat\
+      \ := orders.sum\n\ndef Target : Prop := ∀ buys sells,\n  let result := clear\
+      \ buys sells\n  volume buys = volume result.fills + volume result.buyRemainders\
+      \ ∧\n  volume sells = volume result.fills + volume result.sellRemainders ∧\n\
+      \  result.fills.length = min buys.length sells.length ∧\n  result.buyRemainders.length\
+      \ = buys.length ∧\n  result.sellRemainders.length = sells.length ∧\n  (∀ fill\
+      \ ∈ result.fills, fill ≤ volume buys ∧ fill ≤ volume sells)\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: batch-auction-clearing
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: call-auction-bookkeeping
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/graph-coloring-vertex-renaming
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\nstructure Edge (Vertex :\
+      \ Type) where\n source : Vertex\n target : Vertex\n deriving DecidableEq\ndef\
+      \ renameEdges (mapping : Vertex→Vertex) (edges : List (Edge Vertex)) :=\n edges.map\
+      \ fun edge => (⟨mapping edge.source,mapping edge.target⟩ : Edge Vertex)\ndef\
+      \ proper (color : Vertex→Nat) (edges : List (Edge Vertex)) : Prop :=\n ∀ edge∈edges,color\
+      \ edge.source≠color edge.target\ndef Target : Prop := ∀ (Vertex : Type) (mapping\
+      \ inverse : Vertex→Vertex) color edges,\n (∀ vertex,inverse (mapping vertex)=vertex)→\n\
+      \ proper color edges→\n proper (fun vertex=>color (inverse vertex)) (renameEdges\
+      \ mapping edges) ∧\n renameEdges inverse (renameEdges mapping edges)=edges ∧\n\
+      \ (renameEdges mapping edges).length=edges.length ∧\n renameEdges mapping []=[]\n\
+      end FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: graph-coloring-certificates
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: graph-coloring-vertex-renaming
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/histogram-canonical-expansion
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ndef count [DecidableEq\
+      \ α] (value : α) (items : List α) : Nat := (items.filter (· = value)).length\n\
+      \ndef representativesAux [DecidableEq α] : Nat → List α → List α\n  | 0, _ =>\
+      \ []\n  | _ + 1, [] => []\n  | fuel + 1, value :: rest =>\n      value :: representativesAux\
+      \ fuel (rest.filter (· ≠ value))\n\ndef representatives [DecidableEq α] (items\
+      \ : List α) : List α :=\n  representativesAux items.length items\n\ndef expand\
+      \ [DecidableEq α] (items : List α) : List α :=\n  (representatives items).flatMap\
+      \ fun value => List.replicate (count value items) value\n\ndef Target : Prop\
+      \ :=\n  ∀ (α : Type) [DecidableEq α] (items : List α) (value : α),\n    count\
+      \ value (expand items) = count value items ∧\n    (representatives items).Nodup\
+      \ ∧\n    representatives (expand items) = representatives items ∧\n    (expand\
+      \ items).length = items.length\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: frequency-table-canonicalization
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: histogram-canonical-expansion
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/filesystem-tree-size-mapping
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\ninductive Node (Name : Type)\
+      \ where | file (name : Name) (bytes : Nat) | directory (name : Name) (children\
+      \ : List (Node Name))\ndef rename (mapping : Name→NewName) : Node Name→Node\
+      \ NewName\n | .file name bytes=>.file (mapping name) bytes\n | .directory name\
+      \ children=>.directory (mapping name) (children.map (rename mapping))\ndef bytes\
+      \ : Node Name→Nat | .file _ amount=>amount | .directory _ children=>(children.map\
+      \ bytes).sum\ndef Target : Prop := ∀ (Name NewName FinalName : Type) (first\
+      \ : Name→NewName) (second : NewName→FinalName) node,\n bytes (rename first node)=bytes\
+      \ node ∧\n rename second (rename first node)=rename (second∘first) node ∧\n\
+      \ rename id node=node\nend FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: filesystem-directory-trees
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: filesystem-tree-size-mapping
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/polygon-translation-area
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\nstructure Point where\n\
+      \  x : Int\n  y : Int\n  deriving DecidableEq\n\ndef cross (left right : Point)\
+      \ : Int := left.x * right.y - left.y * right.x\ndef Point.translate (offset\
+      \ point : Point) : Point := ⟨point.x + offset.x, point.y + offset.y⟩\n\ndef\
+      \ close : List Point → List Point\n  | [] => []\n  | first :: rest => rest ++\
+      \ [first]\n\ndef twiceArea (vertices : List Point) : Int :=\n  (List.zipWith\
+      \ cross vertices (close vertices)).sum\n\ndef Target : Prop := ∀ vertices offset,\n\
+      \  twiceArea (vertices.map (Point.translate offset)) = twiceArea vertices ∧\n\
+      \  twiceArea (vertices.rotate 1) = twiceArea vertices ∧\n  twiceArea vertices.reverse\
+      \ = -twiceArea vertices ∧\n  twiceArea [] = 0 ∧ twiceArea [offset] = 0\n\nend\
+      \ FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: computational-polygon-geometry
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: polygon-translation-area
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/allocator-adjacent-coalescing
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\nstructure Block where\n\
+      \  size : Nat\n  free : Bool\n  deriving DecidableEq\n\ndef capacity (blocks\
+      \ : List Block) : Nat := (blocks.map Block.size).sum\n\ndef coalescePass : List\
+      \ Block → List Block\n  | first :: second :: rest =>\n      if first.free &&\
+      \ second.free then coalescePass (⟨first.size + second.size, true⟩ :: rest)\n\
+      \      else first :: coalescePass (second :: rest)\n  | blocks => blocks\ntermination_by\
+      \ blocks => blocks.length\ndecreasing_by all_goals simp_wf\n\ndef normalize\
+      \ (blocks : List Block) : List Block := Nat.iterate coalescePass (blocks.length\
+      \ + 1) blocks\n\ndef Separated : List Block → Prop\n  | first :: second :: rest\
+      \ => ¬ (first.free = true ∧ second.free = true) ∧ Separated (second :: rest)\n\
+      \  | _ => True\n\ndef Target : Prop :=\n  ∀ blocks,\n    capacity (normalize\
+      \ blocks) = capacity blocks ∧\n    Separated (normalize blocks) ∧\n    coalescePass\
+      \ (normalize blocks) = normalize blocks ∧\n    (normalize blocks).length ≤ blocks.length\n\
+      \nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: memory-block-allocators
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: allocator-adjacent-coalescing
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/posting-list-intersection-contract
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\ndef intersect [LinearOrder\
+      \ Doc] : List Doc → List Doc → List Doc\n  | [], _ | _, [] => []\n  | left ::\
+      \ lefts, right :: rights =>\n      if left < right then intersect lefts (right\
+      \ :: rights)\n      else if right < left then intersect (left :: lefts) rights\n\
+      \      else left :: intersect lefts rights\n\ndef StrictlySorted [LinearOrder\
+      \ Doc] (documents : List Doc) : Prop := documents.Pairwise (· < ·)\n\ndef Target\
+      \ : Prop := ∀ (Doc : Type) [LinearOrder Doc]\n    (left right : List Doc),\n\
+      \  StrictlySorted left → StrictlySorted right →\n  StrictlySorted (intersect\
+      \ left right) ∧\n  (∀ document, document ∈ intersect left right ↔ document ∈\
+      \ left ∧ document ∈ right) ∧\n  intersect left right = intersect right left\
+      \ ∧\n  intersect left left = left ∧\n  (intersect left right).length ≤ min left.length\
+      \ right.length\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: inverted-search-indexes
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: posting-list-intersection-contract
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/mapreduce-partition-conservation
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\ndef bucket (shards : Nat)\
+      \ (key : Nat) : Nat := key % shards\ndef partition (shards : Nat) (items : List\
+      \ (Nat × Int)) : List (List (Nat × Int)) :=\n  (List.range shards).map fun shard\
+      \ => items.filter fun item => bucket shards item.1 = shard\ndef total (items\
+      \ : List (Nat × Int)) : Int := (items.map Prod.snd).sum\n\ndef Target : Prop\
+      \ := ∀ shards items,\n  0 < shards →\n  List.Perm ((partition shards items).flatMap\
+      \ id) items ∧\n  ((partition shards items).map total).sum = total items ∧\n\
+      \  (partition shards items).length = shards ∧\n  (∀ shard ∈ partition shards\
+      \ items, shard.length ≤ items.length) ∧\n  (∀ item ∈ items, ∃ shard ∈ partition\
+      \ shards items, item ∈ shard)\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: distributed-mapreduce-aggregation
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: mapreduce-partition-conservation
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/json-escape-decoder-roundtrip
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\ndef escape : List Nat →\
+      \ List Nat\n  | [] => []\n  | 0 :: rest => 1 :: 0 :: escape rest\n  | 1 :: rest\
+      \ => 1 :: 1 :: escape rest\n  | (value + 2) :: rest => (value + 2) :: escape\
+      \ rest\ndef decode : List Nat → Option (List Nat)\n  | [] => some []\n  | 1\
+      \ :: 0 :: rest => (decode rest).map (0 :: ·)\n  | 1 :: 1 :: rest => (decode\
+      \ rest).map (1 :: ·)\n  | 1 :: _ => none\n  | 0 :: _ => none\n  | (value + 2)\
+      \ :: rest => (decode rest).map ((value + 2) :: ·)\ndef Target : Prop := ∀ values\
+      \ suffix encoded,\n  decode (escape values) = some values ∧\n  escape (values\
+      \ ++ suffix) = escape values ++ escape suffix ∧\n  values.length ≤ (escape values).length\
+      \ ∧\n  (escape values).length ≤ 2 * values.length ∧\n  (decode encoded = some\
+      \ values → encoded = escape values)\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: json-string-escaping
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: json-escape-decoder-roundtrip
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/sparse-matrix-transpose-laws
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\nstructure Entry where\n\
+      \ row : Nat\n column : Nat\n value : Int\n deriving DecidableEq\ndef transposeEntry\
+      \ (entry : Entry) : Entry := ⟨entry.column, entry.row, entry.value⟩\ndef transpose\
+      \ (matrix : List Entry) := matrix.map transposeEntry\ndef scale (factor : Int)\
+      \ (matrix : List Entry) := matrix.map fun e => (⟨e.row,e.column,factor*e.value⟩\
+      \ : Entry)\ndef mass (matrix : List Entry) := (matrix.map Entry.value).sum\n\
+      def Target : Prop := ∀ matrix extra factor,\n transpose (transpose matrix)=matrix\
+      \ ∧\n transpose (matrix++extra)=transpose matrix++transpose extra ∧\n transpose\
+      \ (scale factor matrix)=scale factor (transpose matrix) ∧\n mass (transpose\
+      \ matrix)=mass matrix ∧\n (transpose matrix).length=matrix.length\nend FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: sparse-matrix-coordinate-storage
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: sparse-matrix-transpose-laws
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/fir-convolution-polynomial-evaluation
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\ndef addSamples : List Int\
+      \ → List Int → List Int\n  | [], right => right\n  | left, [] => left\n  | x\
+      \ :: xs, y :: ys => (x + y) :: addSamples xs ys\ndef convolve : List Int → List\
+      \ Int → List Int\n  | [], _ | _, [] => []\n  | coefficient :: rest, kernel@(_\
+      \ :: _) =>\n      addSamples (kernel.map (coefficient * ·)) (0 :: convolve rest\
+      \ kernel)\ndef evaluate (samples : List Int) (x : Int) : Int :=\n  (samples.zipWith\
+      \ (fun coefficient power => coefficient * x ^ power) (List.range samples.length)).sum\n\
+      def Target : Prop := ∀ left right x,\n  evaluate (convolve left right) x = evaluate\
+      \ left x * evaluate right x ∧\n  convolve [] right = [] ∧ convolve left [] =\
+      \ [] ∧\n  evaluate [] x = 0 ∧\n  evaluate (left ++ right) x = evaluate left\
+      \ x + x ^ left.length * evaluate right x\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: finite-impulse-response-filters
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: fir-convolution-polynomial-evaluation
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/bounded-ring-buffer-rotation
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\ndef rotate (offset : Nat)\
+      \ (buffer : List Value) := buffer.rotateLeft (offset%buffer.length)\ndef Target\
+      \ : Prop := ∀ (Value : Type) (buffer : List Value) first second,\n buffer≠[]→\n\
+      \ rotate 0 buffer=buffer ∧\n rotate buffer.length buffer=buffer ∧\n rotate second\
+      \ (rotate first buffer)=rotate (first+second) buffer ∧\n (rotate first buffer).length=buffer.length\
+      \ ∧\n rotate (buffer.length-first%buffer.length) (rotate first buffer)=buffer\n\
+      end FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: bounded-ring-buffer-indexing
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: bounded-ring-buffer-rotation
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/css-cascade-winner-laws
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\nstructure Rule (Value :\
+      \ Type) where\n  score : Nat\n  value : Value\n  deriving DecidableEq\ndef choose\
+      \ (left right : Rule Value) : Rule Value := if left.score ≤ right.score then\
+      \ right else left\ndef winner : List (Rule Value) → Option (Rule Value)\n  |\
+      \ [] => none | first :: rest => some (rest.foldl choose first)\ndef Target :\
+      \ Prop := ∀ (Value : Type) (rules extra : List (Rule Value)) (rule : Rule Value),\n\
+      \  winner (rules ++ extra) = (match winner rules, winner extra with\n    | none,\
+      \ other | other, none => other\n    | some left, some right => some (choose\
+      \ left right)) ∧\n  winner [rule] = some rule ∧ choose rule rule = rule ∧\n\
+      \  (∀ result, winner rules = some result → result ∈ rules) ∧\n  (∀ result, winner\
+      \ rules = some result → ∀ candidate ∈ rules, candidate.score ≤ result.score)\n\
+      end FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: css-cascade-specificity
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: css-cascade-winner-laws
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/feistel-network-roundtrip
+  inputs:
+    source: "import Mathlib\n\nnamespace FormalizerProblem\n\ndef round {G : Type}\
+      \ [AddGroup G] (f : G → G) (state : G × G) : G × G :=\n  (state.2, state.1 +\
+      \ f state.2)\n\ndef unround {G : Type} [AddGroup G] (f : G → G) (state : G ×\
+      \ G) : G × G :=\n  (state.2 - f state.1, state.1)\n\ndef encrypt {G : Type}\
+      \ [AddGroup G] (rounds : List (G → G)) (state : G × G) : G × G :=\n  rounds.foldl\
+      \ (fun current f => round f current) state\n\ndef decrypt {G : Type} [AddGroup\
+      \ G] (rounds : List (G → G)) (state : G × G) : G × G :=\n  rounds.reverse.foldl\
+      \ (fun current f => unround f current) state\n\ndef Target : Prop :=\n  ∀ (G\
+      \ : Type) [AddGroup G] (rounds : List (G → G)) (state : G × G),\n    decrypt\
+      \ rounds (encrypt rounds state) = state ∧\n    encrypt rounds (decrypt rounds\
+      \ state) = state\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: invertible-block-networks
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: feistel-network-roundtrip
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/warehouse-batch-pick-accounting
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\nstructure Pick where\n sku\
+      \ : Nat\n quantity : Nat\n deriving DecidableEq\ndef quantity (sku : Nat) (picks\
+      \ : List Pick) := ((picks.filter (·.sku=sku)).map Pick.quantity).sum\ndef combine\
+      \ (left right : List Pick) := left++right\ndef scale (factor : Nat) (picks :\
+      \ List Pick) : List Pick := picks.map fun pick => (⟨pick.sku,factor*pick.quantity⟩\
+      \ : Pick)\ndef Target : Prop := ∀ left right sku factor,\n quantity sku (combine\
+      \ left right)=quantity sku left+quantity sku right ∧\n quantity sku (scale factor\
+      \ left)=factor*quantity sku left ∧\n combine (combine left right) []=combine\
+      \ left right ∧\n (scale factor left).length=left.length ∧ scale 1 left=left\n\
+      end FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: warehouse-batch-picking
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: warehouse-batch-pick-accounting
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/merkle-membership-proof-adequacy
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\ninductive Tree (Value\
+      \ Hash : Type) where\n  | leaf : Value → Tree Value Hash\n  | node : Tree Value\
+      \ Hash → Tree Value Hash → Tree Value Hash\n\ninductive Step (Hash : Type) where\n\
+      \  | siblingLeft : Hash → Step Hash\n  | siblingRight : Hash → Step Hash\n\n\
+      def root (hashLeaf : Value → Hash) (hashNode : Hash → Hash → Hash) : Tree Value\
+      \ Hash → Hash\n  | .leaf value => hashLeaf value\n  | .node left right => hashNode\
+      \ (root hashLeaf hashNode left) (root hashLeaf hashNode right)\n\ndef prove\
+      \ (hashLeaf : Value → Hash) (hashNode : Hash → Hash → Hash) :\n    List Bool\
+      \ → Tree Value Hash → Option (Value × List (Step Hash))\n  | [], .leaf value\
+      \ => some (value, [])\n  | false :: path, .node left right =>\n      (prove\
+      \ hashLeaf hashNode path left).map fun result =>\n        (result.1, result.2\
+      \ ++ [.siblingRight (root hashLeaf hashNode right)])\n  | true :: path, .node\
+      \ left right =>\n      (prove hashLeaf hashNode path right).map fun result =>\n\
+      \        (result.1, result.2 ++ [.siblingLeft (root hashLeaf hashNode left)])\n\
+      \  | _, _ => none\n\ndef verify (hashLeaf : Value → Hash) (hashNode : Hash →\
+      \ Hash → Hash)\n    (value : Value) (proof : List (Step Hash)) : Hash :=\n \
+      \ proof.foldl (fun current step => match step with\n    | .siblingLeft sibling\
+      \ => hashNode sibling current\n    | .siblingRight sibling => hashNode current\
+      \ sibling) (hashLeaf value)\n\ndef Target : Prop := ∀ (Value Hash : Type) (hashLeaf\
+      \ : Value → Hash)\n    (hashNode : Hash → Hash → Hash) path tree value proof,\n\
+      \  (prove hashLeaf hashNode path tree = some (value, proof) →\n    verify hashLeaf\
+      \ hashNode value proof = root hashLeaf hashNode tree) ∧\n  (prove hashLeaf hashNode\
+      \ path tree = some (value, proof) → proof.length = path.length) ∧\n  (∀ leafValue,\
+      \ prove hashLeaf hashNode [] (.leaf leafValue) = some (leafValue, [])) ∧\n \
+      \ (∀ left right, prove hashLeaf hashNode [] (.node left right) = none)\n\nend\
+      \ FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: authenticated-data-structures
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: merkle-membership-proof-adequacy
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/vector-clock-merge-algebra
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\nabbrev Clock (Node : Type)\
+      \ := Node → Nat\ndef merge [DecidableEq Node] (left right : Clock Node) : Clock\
+      \ Node := fun node => max (left node) (right node)\ndef advance [DecidableEq\
+      \ Node] (node : Node) (clock : Clock Node) : Clock Node := fun other => if other=node\
+      \ then clock other+1 else clock other\ndef leq (left right : Clock Node) : Prop\
+      \ := ∀ node,left node≤right node\ndef Target : Prop := ∀ (Node : Type) [DecidableEq\
+      \ Node] (first second third : Clock Node) node,\n merge first second=merge second\
+      \ first ∧\n merge (merge first second) third=merge first (merge second third)\
+      \ ∧\n merge first first=first ∧\n leq first (merge first second) ∧\n leq (merge\
+      \ first second) (merge (advance node first) second)\nend FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: distributed-vector-clocks
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: vector-clock-merge-algebra
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/quarter-turn-pose-composition
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\n\nstructure Point where\n\
+      \  x : Int\n  y : Int\n  deriving DecidableEq\n\nstructure Pose where\n  turn\
+      \ : Nat\n  offset : Point\n  deriving DecidableEq\n\ndef rotate (turn : Nat)\
+      \ (point : Point) : Point :=\n  match turn % 4 with\n  | 0 => point\n  | 1 =>\
+      \ ⟨-point.y, point.x⟩\n  | 2 => ⟨-point.x, -point.y⟩\n  | _ => ⟨point.y, -point.x⟩\n\
+      \ndef transform (pose : Pose) (point : Point) : Point :=\n  let rotated := rotate\
+      \ pose.turn point\n  ⟨rotated.x + pose.offset.x, rotated.y + pose.offset.y⟩\n\
+      \ndef compose (outer inner : Pose) : Pose :=\n  let shifted := rotate outer.turn\
+      \ inner.offset\n  ⟨(outer.turn + inner.turn) % 4,\n   ⟨shifted.x + outer.offset.x,\
+      \ shifted.y + outer.offset.y⟩⟩\n\ndef identity : Pose := ⟨0, ⟨0, 0⟩⟩\n\ndef\
+      \ Target : Prop := ∀ outer inner third point,\n  transform (compose outer inner)\
+      \ point = transform outer (transform inner point) ∧\n  compose identity outer\
+      \ = { outer with turn := outer.turn % 4 } ∧\n  compose outer identity = { outer\
+      \ with turn := outer.turn % 4 } ∧\n  compose (compose outer inner) third = compose\
+      \ outer (compose inner third) ∧\n  rotate outer.turn (rotate inner.turn point)\
+      \ = rotate (outer.turn + inner.turn) point\n\nend FormalizerProblem\n"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: robot-coordinate-frames
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: quarter-turn-pose-composition
+      license: Apache-2.0
+      reference: null
+- name: formalizer-eval/balanced-delimiter-depth-parser
+  inputs:
+    source: "import Mathlib\nnamespace FormalizerProblem\ninductive Token where |\
+      \ open | close | atom deriving DecidableEq\ndef step : Option Nat→Token→Option\
+      \ Nat\n | none,_=>none | some depth,.open=>some (depth+1) | some 0,.close=>none\n\
+      \ | some (depth+1),.close=>some depth | some depth,.atom=>some depth\ndef parse\
+      \ (tokens : List Token) := tokens.foldl step (some 0)\ndef mirrorToken : Token→Token\
+      \ | .open=>.close | .close=>.open | .atom=>.atom\ndef mirror (tokens : List\
+      \ Token) := tokens.reverse.map mirrorToken\ndef Balanced (tokens : List Token)\
+      \ := parse tokens=some 0\ndef Target : Prop := ∀ tokens extra,\n Balanced tokens→Balanced\
+      \ (mirror tokens) ∧ mirror (mirror tokens)=tokens ∧\n (mirror tokens).length=tokens.length\
+      \ ∧\n mirror (tokens++extra)=mirror extra++mirror tokens ∧\n (Balanced extra→Balanced\
+      \ (tokens++extra))\nend FormalizerProblem"
+  metadata:
+    difficulty: hard
+    split: validation
+    domain: source-code-delimiter-validation
+    provenance:
+      origin: original
+      source: Formalizer DeepSeek V4 Flash clean-room benchmark
+      source_id: balanced-delimiter-depth-parser
+      license: Apache-2.0
+      reference: null

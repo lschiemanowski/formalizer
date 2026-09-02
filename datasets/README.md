@@ -146,6 +146,52 @@ Do not expand this file in place after running the baseline. Additions belong in
 `baseline-eval-v2.yaml` so evaluations remain directly comparable without relying on case-filter
 metadata to reconstruct membership.
 
+## Formalizer eval v1
+
+`formalizer-eval-v1.yaml` is the frozen primary model-comparison set for the capability range in
+which `baseline-eval-v1` is saturated. It is an adaptively calibrated validation set. Its source
+policy requires clean-room authored cases: do not copy, translate, paraphrase, or otherwise
+adapt statements from PutnamBench or another public problem benchmark. Bespoke supporting
+definitions and compositions must make each task independently auditable as project-original work.
+This policy reduces obvious training-data contamination and avoids depending on third-party
+problem-statement reuse rights.
+
+This is deliberately a validation benchmark, not an untouched estimate of generalization. Case
+membership was chosen using DeepSeek V4 Flash pilot outcomes. Comparisons to that model must say
+that the set is adaptively calibrated; evaluation of other models may still be useful, but should
+not be described as a model-independent sample.
+
+An earlier draft used PutnamBench adaptations. That construction and all results obtained from it
+are rejected and cannot support final membership, difficulty, or benchmark claims. Its local run
+artifacts are retained only as discarded calibration evidence in the append-only ledger. The
+replacement must still contain exactly 50 substantively different tasks, achieve at least 20
+genuine failures with verified successes comprising the remainder in one canonical run, and span
+an overlapping effort spectrum rather than an easy/hard bimodal split. Duration and token use are
+empirical diagnostics, not intrinsic labels.
+
+The fixed protocol is:
+
+```text
+model: openrouter:deepseek/deepseek-v4-flash-0731
+OpenRouter provider: deepseek only; fallbacks disabled; required parameters enforced
+sampling: provider defaults
+tool choice: auto
+max tokens per response: 16384
+request limit per case: 1000
+output-token limit per case: 100000
+total-token limit per case: 2000000
+infrastructure retries: 2
+whole-run timeout: 30 minutes
+max concurrency: 8
+```
+
+The append-only calibration ledger is `formalizer-eval-v1-calibration.jsonl`. It records dataset
+identity changes and hashes, valid model outcomes, infrastructure-invalid retries, token use,
+provider-reported cost, and the corresponding
+local `runs/evals/.../report.json` paths. Those run directories retain the complete submissions,
+errors, and per-attempt usage. Infrastructure-invalid retries are never counted as model failures,
+and valid stochastic trials were not rerun merely to obtain a preferred label.
+
 Validate the current smoke dataset without making model requests:
 
 ```bash
@@ -172,6 +218,14 @@ Validate the frozen baseline dataset and its exact source copies:
 ```bash
 uv run pytest tests/eval/test_baseline_eval_dataset.py
 uv run pytest -m integration tests/eval/test_baseline_eval_dataset.py
+```
+
+Validate Formalizer eval v1, its clean-room provenance, diversity guards, calibration ledger, and
+all trusted Lean targets:
+
+```bash
+uv run pytest tests/eval/test_formalizer_eval_dataset.py
+uv run pytest -m integration tests/eval/test_formalizer_eval_dataset.py
 ```
 
 Select cases for an evaluation by split, difficulty, or exact case name. Repeating one option
@@ -209,10 +263,10 @@ uv run formalizer-eval \
 The resolved budget and retry policy are recorded in the evaluation report metadata.
 
 Model behavior controls are optional so omission preserves the model or provider default. Use
-`--thinking` to select a Pydantic AI thinking-effort level, or change one sampling control with
-`--temperature` or `--top-p`. Temperature and `top_p` are mutually exclusive. The effective CLI
-choices, including explicit `null` values for provider defaults, are recorded under
-`model_settings` in the report metadata.
+`--thinking` to select a Pydantic AI thinking-effort level, `--service-tier` to select a processing
+tier such as `flex`, or change one sampling control with `--temperature` or `--top-p`. Temperature
+and `top_p` are mutually exclusive. The effective CLI choices, including explicit `null` values for
+provider defaults, are recorded under `model_settings` in the report metadata.
 
 For example, this isolates lower reasoning effort while leaving sampling at provider defaults:
 

@@ -182,6 +182,7 @@ def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
         "temperature": None,
         "top_p": None,
         "thinking": None,
+        "service_tier": None,
         "tool_choice": None,
         "openrouter_provider": None,
     }
@@ -263,7 +264,7 @@ def test_eval_cli_applies_and_records_budget_overrides(
     assert metadata["execution"] == {"max_concurrency": 3}
 
 
-def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
+def test_eval_cli_applies_and_records_model_behavior_settings(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -298,6 +299,8 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
             str(output_dir),
             "--thinking",
             "low",
+            "--service-tier",
+            "flex",
             "--temperature",
             "0.6",
             "--tool-choice",
@@ -318,6 +321,7 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
         },
         "temperature": 0.6,
         "thinking": "low",
+        "service_tier": "flex",
         "tool_choice": "auto",
     }
     assert metadata["model_settings"] == {
@@ -325,6 +329,7 @@ def test_eval_cli_applies_and_records_thinking_and_sampling_settings(
         "temperature": 0.6,
         "top_p": None,
         "thinking": "low",
+        "service_tier": "flex",
         "tool_choice": "auto",
         "openrouter_provider": {
             "only": ["novita"],
@@ -820,6 +825,7 @@ def test_experiment_metadata_records_reproducibility_inputs(
         "temperature": None,
         "top_p": None,
         "thinking": None,
+        "service_tier": None,
         "tool_choice": None,
         "openrouter_provider": None,
     }
