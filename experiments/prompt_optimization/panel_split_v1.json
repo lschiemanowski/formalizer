@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "name": "qwen3.6-35b-a3b-gepa-panel-split-v1",
+  "source_screen": {
+    "path": "runs/prompt-optimization/qwen3.6-35b-a3b-seed-screen-v2-15case",
+    "run_id": "ec78d996-109d-45d7-b6fa-94b0b8f42e05",
+    "manifest_sha256": "2e44ff8c5eddbe84b9dd91b9f212b0ed182e470fb8b84964008fb0c62812175e",
+    "status_sha256": "30673309341814ed78bf2af954f8b25e93a54df2fd93c2276c194d58e23ac06a",
+    "result_sha256": "30673309341814ed78bf2af954f8b25e93a54df2fd93c2276c194d58e23ac06a",
+    "evaluations_sha256": "eb08e0d2ebc58e4af740d00e246d3ef97b07d47c8aa1e840159f9e553e459a92"
+  },
+  "dataset": {
+    "path": "datasets/basic-problems-v1.yaml",
+    "sha256": "8549cd7cd755885c3470a3add2d91707c1702e67ce9162e99dcb0efd6212a4eb",
+    "required_split": "train"
+  },
+  "seed_prompt": {
+    "path": "experiments/prompt_optimization/prompts/seed_v1.txt",
+    "sha256": "773831707b45f5b27e307ea19077bedc999987089a7073dbd26a341e0f38f49e"
+  },
+  "discovery_cases": [
+    "basic-problems/problem-44",
+    "basic-problems/problem-65",
+    "basic-problems/problem-9",
+    "basic-problems/problem-14",
+    "basic-problems/problem-19",
+    "basic-problems/problem-20",
+    "basic-problems/problem-41",
+    "basic-problems/problem-52",
+    "basic-problems/problem-74"
+  ],
+  "selection_cases": [
+    "basic-problems/problem-37",
+    "basic-problems/problem-60",
+    "basic-problems/problem-59",
+    "basic-problems/problem-69",
+    "basic-problems/problem-72"
+  ],
+  "excluded_cases": [
+    {
+      "case_name": "basic-problems/problem-68",
+      "reason": "Infrastructure-invalid screen result: the accumulated prompt exceeded the server context by 19 tokens; exclude until failure taxonomy and context handling are resolved."
+    }
+  ],
+  "split_rationale": {
+    "discovery": "Failure-rich and behaviorally diverse, with two successful or unstable anchors for contrast.",
+    "selection": "Three seed successes and two seed failures spanning navigation, repair, and stretch behavior, retained for score-only candidate selection.",
+    "selection_transcript_policy": "Do not inspect or expose selection run.json or messages.json content during transcript-driven candidate mutation."
+  }
+}

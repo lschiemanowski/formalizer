@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "name": "qwen3.6-35b-a3b-seed-screen-v2",
+  "parent_run": {
+    "path": "runs/prompt-optimization/qwen3.6-35b-a3b-seed-canary-v1",
+    "run_id": "37011fc3-6ac0-4cba-8781-9ba7214b8deb",
+    "manifest_sha256": "c0cafff53496fd903a2448cd8f915cfe34e613489e6c73962cb45903e9dd8149",
+    "status_sha256": "a4312e5eabaf6e645dfec46ce685a5e59c04afdb846935e5d4eb777ebd9f5db8"
+  },
+  "dataset": {
+    "path": "datasets/basic-problems-v1.yaml",
+    "sha256": "8549cd7cd755885c3470a3add2d91707c1702e67ce9162e99dcb0efd6212a4eb"
+  },
+  "seed_prompt": {
+    "path": "experiments/prompt_optimization/prompts/seed_v1.txt",
+    "sha256": "773831707b45f5b27e307ea19077bedc999987089a7073dbd26a341e0f38f49e"
+  },
+  "task_model": {
+    "endpoint": "http://logos:8080/v1",
+    "model": "openai-chat:unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_XL",
+    "server_model_id": "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_XL",
+    "tool_choice": "auto",
+    "max_tokens": 16384,
+    "temperature": null,
+    "top_p": null
+  },
+  "execution": {
+    "repeat": 1,
+    "max_concurrency": 1,
+    "run_timeout_s": 1800,
+    "request_limit": 200,
+    "output_tokens_limit": 50000,
+    "total_tokens_limit": 1000000,
+    "infrastructure_retries": 2
+  },
+  "panel": [
+    {
+      "case_name": "basic-problems/problem-13",
+      "provisional_role": "smoke-canary",
+      "behavior_tags": ["linear-algebra", "direct-structure", "protocol"]
+    },
+    {
+      "case_name": "basic-problems/problem-37",
+      "provisional_role": "regression-anchor",
+      "behavior_tags": ["analysis", "library-navigation", "direct-application"]
+    },
+    {
+      "case_name": "basic-problems/problem-44",
+      "provisional_role": "regression-anchor",
+      "behavior_tags": ["algebra", "library-navigation", "rewriting"]
+    },
+    {
+      "case_name": "basic-problems/problem-65",
+      "provisional_role": "regression-anchor",
+      "behavior_tags": ["commutative-algebra", "instances", "library-navigation"]
+    },
+    {
+      "case_name": "basic-problems/problem-9",
+      "provisional_role": "library-navigation",
+      "behavior_tags": ["commutative-algebra", "iff-proof", "ideal-lattice"]
+    },
+    {
+      "case_name": "basic-problems/problem-14",
+      "provisional_role": "library-navigation",
+      "behavior_tags": ["functional-analysis", "specialized-theorem", "coercions"]
+    },
+    {
+      "case_name": "basic-problems/problem-19",
+      "provisional_role": "library-navigation",
+      "behavior_tags": ["number-theory", "congruence", "integer-coercions"]
+    },
+    {
+      "case_name": "basic-problems/problem-60",
+      "provisional_role": "library-navigation",
+      "behavior_tags": ["group-theory", "characteristic-subgroup", "direct-theorem"]
+    },
+    {
+      "case_name": "basic-problems/problem-20",
+      "provisional_role": "proof-repair",
+      "behavior_tags": ["analysis", "density", "continuity"]
+    },
+    {
+      "case_name": "basic-problems/problem-41",
+      "provisional_role": "proof-repair",
+      "behavior_tags": ["group-theory", "uniqueness", "algebraic-manipulation"]
+    },
+    {
+      "case_name": "basic-problems/problem-59",
+      "provisional_role": "proof-repair",
+      "behavior_tags": ["linear-algebra", "polynomial-aeval", "rewriting"]
+    },
+    {
+      "case_name": "basic-problems/problem-68",
+      "provisional_role": "proof-repair",
+      "behavior_tags": ["linear-algebra", "affine-cosets", "coercions"]
+    },
+    {
+      "case_name": "basic-problems/problem-52",
+      "provisional_role": "stretch",
+      "behavior_tags": ["topology", "compactness", "metric-infimum"]
+    },
+    {
+      "case_name": "basic-problems/problem-69",
+      "provisional_role": "stretch",
+      "behavior_tags": ["algebra", "finite-field", "polynomial-interpolation"]
+    },
+    {
+      "case_name": "basic-problems/problem-72",
+      "provisional_role": "stretch",
+      "behavior_tags": ["linear-algebra", "explicit-construction", "infinite-dimensional"]
+    },
+    {
+      "case_name": "basic-problems/problem-74",
+      "provisional_role": "stretch",
+      "behavior_tags": ["linear-algebra", "rank-inequality", "natural-arithmetic"]
+    }
+  ]
+}

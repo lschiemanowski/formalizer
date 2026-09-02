@@ -533,6 +533,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     search_settings: list[SandboxSettings] = []
     model_names: list[object] = []
     seen_model_settings: list[ModelSettings | None] = []
+    seen_instructions: list[str] = []
     run_problems: list[FormalizationProblem] = []
     run_agents: list[object] = []
     run_dependencies: list[AgentDependencies] = []
@@ -558,10 +559,12 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         model: object,
         *,
         model_settings: ModelSettings | None = None,
+        instructions: str,
     ) -> object:
         events.append("create agent")
         model_names.append(model)
         seen_model_settings.append(model_settings)
+        seen_instructions.append(instructions)
         return expected_agent
 
     async def fake_run_formalizer(
@@ -585,7 +588,13 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     monkeypatch.setattr(run_module, "create_agent", fake_create_agent)
     monkeypatch.setattr(run_module, "run_formalizer", fake_run_formalizer)
 
-    result = await run_module.formalize(PROBLEM, settings, run_id=run_id)
+    experiment_instructions = "experiment instructions"
+    result = await run_module.formalize(
+        PROBLEM,
+        settings,
+        run_id=run_id,
+        instructions=experiment_instructions,
+    )
 
     assert result is expected_result
     assert lean_settings == [settings.sandbox]
@@ -593,6 +602,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     assert search_settings == [settings.sandbox]
     assert model_names == [settings.model_name]
     assert seen_model_settings == [settings.model_settings]
+    assert seen_instructions == [experiment_instructions]
     assert run_problems == [PROBLEM]
     assert run_agents == [expected_agent]
     assert len(run_dependencies) == 1

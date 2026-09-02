@@ -114,6 +114,34 @@ async def test_verified_final_submission_ends_the_run() -> None:
     assert checker.checked_code == [VALID_CODE]
 
 
+async def test_create_agent_accepts_experiment_instructions_without_changing_default() -> None:
+    accepted_result = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
+    checker = FakeLeanChecker([accepted_result])
+    experiment_instructions = "EXPERIMENT PROMPT: use the normal Formalizer tool contract."
+
+    async def inspect_instructions(
+        messages: list[ModelMessage],
+        agent_info: AgentInfo,
+    ) -> ModelResponse:
+        assert messages[0].instructions == experiment_instructions
+        assert agent_info.instructions == experiment_instructions
+        return final_submission_response(VALID_CODE)
+
+    agent = create_agent(
+        FunctionModel(inspect_instructions),
+        instructions=experiment_instructions,
+    )
+    result = await agent.run(
+        "Prove that 1 + 1 = 2.",
+        deps=AgentDependencies(
+            lean_checker=checker,
+            search_backend=UnexpectedSearchBackend(),
+        ),
+    )
+
+    assert result.output.check.accepted
+
+
 async def test_auto_tool_choice_retries_plain_text_until_final_submission() -> None:
     accepted_result = LeanResult(stdout="", stderr="", exit_code=0, duration_s=0.1)
     checker = FakeLeanChecker([accepted_result])

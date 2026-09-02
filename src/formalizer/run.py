@@ -178,6 +178,7 @@ async def formalize(
     settings: Settings,
     *,
     run_id: UUID | None = None,
+    instructions: str | None = None,
 ) -> AgentRunResult[Submission]:
     lean_checker = DockerLeanChecker(
         settings.sandbox,
@@ -185,9 +186,14 @@ async def formalize(
     )
     await lean_checker.validate_problem()
 
-    agent = create_agent(
-        settings.model_name,
-        model_settings=settings.model_settings,
+    agent = (
+        create_agent(settings.model_name, model_settings=settings.model_settings)
+        if instructions is None
+        else create_agent(
+            settings.model_name,
+            model_settings=settings.model_settings,
+            instructions=instructions,
+        )
     )
 
     async with DockerLoogleBackend(settings.sandbox) as search_backend:

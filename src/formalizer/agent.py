@@ -172,6 +172,7 @@ def create_agent(
     model: Model | str,
     *,
     model_settings: ModelSettings | None = None,
+    instructions: str = _INSTRUCTIONS,
 ) -> Agent[AgentDependencies, Submission]:
     final_output = ToolOutput[Submission](
         final_submission,
@@ -185,7 +186,7 @@ def create_agent(
     return Agent[AgentDependencies, Submission](
         model,
         deps_type=AgentDependencies,
-        instructions=_INSTRUCTIONS,
+        instructions=instructions,
         model_settings=model_settings,
         tools=[mathlib_search, save, lean_execute],
         output_type=output_type,
