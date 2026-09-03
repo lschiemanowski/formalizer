@@ -7,10 +7,12 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
-from pydantic_ai import Agent, AgentRunResult, capture_run_messages
+from pydantic_ai import Agent, AgentRunResult, RunContext, capture_run_messages
+from pydantic_ai.capabilities import ProcessHistory
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter, ModelResponse
 
 from formalizer.agent import AgentDependencies, Submission, create_agent, problem_prompt
+from formalizer.context import ContextController, ContextPolicy
 from formalizer.lean import DockerLeanChecker, LeanResult, LeanWorkspace
 from formalizer.problem import FormalizationProblem
 from formalizer.search import DockerLoogleBackend
@@ -52,6 +54,7 @@ class RunManifest(BaseModel):
     error: str | None = None
     verification: LeanResult | None = None
     usage: ModelUsage = Field(default_factory=ModelUsage)
+    context_policy: str | None = None
 
 
 def _cost_decimal(value: Any) -> Decimal | None:
@@ -120,6 +123,7 @@ async def run_formalizer(
     deps: AgentDependencies,
     settings: RunSettings,
     run_id: UUID | None = None,
+    context_policy: ContextPolicy | None = None,
 ) -> AgentRunResult[Submission]:
     resolved_run_id = run_id or uuid4()
     run_id_text = str(resolved_run_id)
@@ -127,6 +131,27 @@ async def run_formalizer(
     started_at = datetime.now(UTC)
     run_dir.mkdir(parents=True)
     (run_dir / "problem.lean").write_text(problem.source, encoding="utf-8")
+    context_controller = (
+        None
+        if context_policy is None
+        else ContextController(
+            policy=context_policy,
+            events_path=run_dir / "context-events.jsonl",
+        )
+    )
+
+    async def process_context(
+        ctx: RunContext[AgentDependencies],
+        messages: list[ModelMessage],
+    ) -> list[ModelMessage]:
+        assert context_controller is not None
+        if ctx.run_id is None:
+            raise RuntimeError("context management requires a run id")
+        return await context_controller.process(
+            messages,
+            run_id=ctx.run_id,
+            run_step=ctx.run_step,
+        )
 
     with capture_run_messages() as messages:
         try:
@@ -136,6 +161,11 @@ async def run_formalizer(
                     deps=deps,
                     run_id=run_id_text,
                     usage_limits=settings.usage_limits,
+                    capabilities=(
+                        [ProcessHistory(process_context)]
+                        if context_controller is not None
+                        else None
+                    ),
                 )
         except (asyncio.CancelledError, Exception) as error:
             failed_manifest = RunManifest(
@@ -147,6 +177,7 @@ async def run_formalizer(
                 error_type=type(error).__name__,
                 error=str(error),
                 usage=summarize_model_messages(messages),
+                context_policy=context_policy.name if context_policy is not None else None,
             )
             (run_dir / "messages.json").write_bytes(ModelMessagesTypeAdapter.dump_json(messages))
             _write_workspace(run_dir, deps.lean_workspace)
@@ -163,6 +194,7 @@ async def run_formalizer(
         finished_at=finished_at,
         verification=result.output.check,
         usage=summarize_model_messages(result.all_messages()),
+        context_policy=context_policy.name if context_policy is not None else None,
     )
 
     (run_dir / "messages.json").write_bytes(result.all_messages_json())
@@ -179,6 +211,7 @@ async def formalize(
     *,
     run_id: UUID | None = None,
     instructions: str | None = None,
+    context_policy: ContextPolicy | None = None,
 ) -> AgentRunResult[Submission]:
     lean_checker = DockerLeanChecker(
         settings.sandbox,
@@ -206,4 +239,5 @@ async def formalize(
             ),
             settings=settings.run,
             run_id=run_id,
+            context_policy=context_policy,
         )

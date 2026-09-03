@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from decimal import Decimal
 from pathlib import Path
 from types import TracebackType
-from typing import Self
+from typing import Self, cast
 from uuid import UUID
 
 import pytest
@@ -23,6 +23,7 @@ from pydantic_ai.usage import RequestUsage
 
 import formalizer.run as run_module
 from formalizer.agent import AgentDependencies, create_agent
+from formalizer.context import ContextPolicy
 from formalizer.lean import InvalidLeanProblem, LeanResult, LeanWorkspace
 from formalizer.problem import FormalizationProblem
 from formalizer.run import RunManifest, run_formalizer
@@ -204,6 +205,7 @@ async def test_successful_run_writes_run_artifacts(tmp_path: Path) -> None:
     assert manifest.usage.provider_reported_cost_usd == Decimal("0.01")
     assert manifest.usage.provider_costed_responses == 1
     assert manifest.verification == checker.result
+    assert manifest.context_policy is None
     assert manifest.started_at <= manifest.finished_at
     assert (run_dir / "final.lean").read_text() == VALID_CODE
     assert (run_dir / "problem.lean").read_text() == PROBLEM.source
@@ -539,6 +541,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     run_dependencies: list[AgentDependencies] = []
     run_settings: list[RunSettings] = []
     run_ids: list[UUID | None] = []
+    run_context_policies: list[object | None] = []
 
     problem_codes: list[str | None] = []
 
@@ -574,6 +577,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         deps: AgentDependencies,
         settings: RunSettings,
         run_id: UUID | None = None,
+        context_policy: object | None = None,
     ) -> object:
         events.append("run")
         run_problems.append(problem)
@@ -581,6 +585,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
         run_dependencies.append(deps)
         run_settings.append(settings)
         run_ids.append(run_id)
+        run_context_policies.append(context_policy)
         return expected_result
 
     monkeypatch.setattr(run_module, "DockerLeanChecker", fake_lean_checker)
@@ -589,11 +594,13 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     monkeypatch.setattr(run_module, "run_formalizer", fake_run_formalizer)
 
     experiment_instructions = "experiment instructions"
+    context_policy = cast(ContextPolicy, object())
     result = await run_module.formalize(
         PROBLEM,
         settings,
         run_id=run_id,
         instructions=experiment_instructions,
+        context_policy=context_policy,
     )
 
     assert result is expected_result
@@ -610,6 +617,7 @@ async def test_formalize_wires_settings_and_manages_search_backend(
     assert run_dependencies[0].search_backend is search_backend
     assert run_settings == [settings.run]
     assert run_ids == [run_id]
+    assert run_context_policies == [context_policy]
     assert events == [
         "validate problem",
         "create agent",
@@ -654,8 +662,10 @@ async def test_formalize_closes_search_backend_when_run_fails(
         deps: AgentDependencies,
         settings: RunSettings,
         run_id: UUID | None = None,
+        context_policy: object | None = None,
     ) -> object:
         assert run_id is None
+        assert context_policy is None
         events.append("run")
         raise expected_error
 

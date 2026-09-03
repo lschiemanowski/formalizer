@@ -164,7 +164,7 @@ async def final_submission(
     return Submission(code=code, check=check)
 
 
-def _reject_plain_text(_text: str) -> Submission:
+async def _reject_plain_text(_text: str) -> Submission:
     raise ModelRetry("Plain text cannot complete the run; call one of the available tools.")
 
 
