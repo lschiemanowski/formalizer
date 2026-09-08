@@ -55,6 +55,43 @@ class FakeCase:
         )
 
 
+def test_eval_cli_can_disable_the_cumulative_total_token_limit() -> None:
+    args = cli_module._parser().parse_args(
+        [
+            "--dataset",
+            "dataset.yaml",
+            "--model",
+            "test:model",
+            "--name",
+            "no-total-limit",
+            "--output-dir",
+            "output",
+            "--no-total-tokens-limit",
+        ]
+    )
+
+    assert args.total_tokens_limit is None
+
+
+def test_eval_cli_rejects_conflicting_total_token_limit_flags() -> None:
+    with pytest.raises(SystemExit):
+        cli_module._parser().parse_args(
+            [
+                "--dataset",
+                "dataset.yaml",
+                "--model",
+                "test:model",
+                "--name",
+                "conflicting-total-limit",
+                "--output-dir",
+                "output",
+                "--total-tokens-limit",
+                "1000",
+                "--no-total-tokens-limit",
+            ]
+        )
+
+
 def test_eval_cli_loads_dataset_runs_experiment_and_configures_logfire(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

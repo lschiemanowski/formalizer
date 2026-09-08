@@ -138,11 +138,20 @@ def _parser() -> argparse.ArgumentParser:
         default=DEFAULT_OUTPUT_TOKENS_LIMIT,
         help="Maximum cumulative output tokens per case.",
     )
-    parser.add_argument(
+    total_tokens = parser.add_mutually_exclusive_group()
+    total_tokens.add_argument(
         "--total-tokens-limit",
+        dest="total_tokens_limit",
         type=_positive_int,
         default=DEFAULT_TOTAL_TOKENS_LIMIT,
         help="Maximum cumulative input and output tokens per case.",
+    )
+    total_tokens.add_argument(
+        "--no-total-tokens-limit",
+        dest="total_tokens_limit",
+        action="store_const",
+        const=None,
+        help="Disable the cumulative input-plus-output token limit.",
     )
     parser.add_argument(
         "--infrastructure-retries",
