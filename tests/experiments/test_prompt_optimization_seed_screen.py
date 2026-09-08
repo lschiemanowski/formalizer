@@ -87,6 +87,24 @@ def test_budget_ceiling_is_explicit_for_each_phase() -> None:
     }
 
 
+def test_screen_can_disable_total_token_accounting() -> None:
+    config, dataset_path, _ = load_validated_config()
+    execution = config.execution.model_copy(update={"total_tokens_limit": None})
+    config = config.model_copy(update={"execution": execution})
+    panel_case = seed_screen._cases_for_phase(config, "canary")[0]
+
+    command = seed_screen._eval_command(
+        config,
+        dataset_path=dataset_path,
+        panel_case=panel_case,
+        output_dir=Path("unused-output"),
+    )
+
+    assert "--no-total-tokens-limit" in command
+    assert "--total-tokens-limit" not in command
+    assert seed_screen._budget_ceiling(config, 1)["total_tokens"] is None
+
+
 def test_request_limited_pilot_config_has_tighter_budgets_and_completed_parent() -> None:
     config = seed_screen._load_config(SCREEN_CONFIG_PATH)
     seed_screen._validate_inputs(config)

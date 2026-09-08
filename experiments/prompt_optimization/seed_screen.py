@@ -83,7 +83,7 @@ class ExecutionConfig(BaseModel):
     run_timeout_s: int = Field(ge=1)
     request_limit: int = Field(ge=1)
     output_tokens_limit: int = Field(ge=1)
-    total_tokens_limit: int = Field(ge=1)
+    total_tokens_limit: int | None = Field(default=None, ge=1)
     infrastructure_retries: int = Field(ge=0)
 
 
@@ -213,14 +213,18 @@ def _cases_for_phase(config: ScreeningConfig, phase: str) -> tuple[PanelCase, ..
     return config.panel
 
 
-def _budget_ceiling(config: ScreeningConfig, case_count: int) -> dict[str, int]:
+def _budget_ceiling(config: ScreeningConfig, case_count: int) -> dict[str, int | None]:
     execution = config.execution
     attempts = case_count * execution.repeat
     return {
         "selected_attempts": attempts,
         "model_requests": attempts * execution.request_limit,
         "output_tokens": attempts * execution.output_tokens_limit,
-        "total_tokens": attempts * execution.total_tokens_limit,
+        "total_tokens": (
+            attempts * execution.total_tokens_limit
+            if execution.total_tokens_limit is not None
+            else None
+        ),
         "wall_time_s": attempts * execution.run_timeout_s,
     }
 
@@ -258,13 +262,15 @@ def _eval_command(
         str(execution.request_limit),
         "--output-tokens-limit",
         str(execution.output_tokens_limit),
-        "--total-tokens-limit",
-        str(execution.total_tokens_limit),
         "--infrastructure-retries",
         str(execution.infrastructure_retries),
         "--case",
         panel_case.case_name,
     ]
+    if execution.total_tokens_limit is None:
+        command.append("--no-total-tokens-limit")
+    else:
+        command.extend(("--total-tokens-limit", str(execution.total_tokens_limit)))
     if model.temperature is not None:
         command.extend(("--temperature", str(model.temperature)))
     if model.top_p is not None:
